@@ -1,9 +1,11 @@
-import { User, InsertUser, Group, Post } from "@shared/schema";
-import createMemoryStore from "memorystore";
+import { users, groups, posts, userGroups, type User, type InsertUser, type Group, type Post } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
 import session from "express-session";
-import { randomUUID } from "crypto";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -19,97 +21,91 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private groups: Map<number, Group>;
-  private posts: Map<number, Post>;
-  private userGroups: Set<string>;
+export class DatabaseStorage implements IStorage {
   public sessionStore: session.Store;
-  private currentId: number;
 
   constructor() {
-    this.users = new Map();
-    this.groups = new Map();
-    this.posts = new Map();
-    this.userGroups = new Set();
-    this.currentId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
-    
-    // Initialize with default groups
-    this.initializeGroups();
-  }
-
-  private initializeGroups() {
-    const defaultGroups: Group[] = [
-      { id: 1, name: "Tech", description: "Discuss tech and career in tech", category: "Career" },
-      { id: 2, name: "Health & Wellness", description: "General health discussions", category: "Health" },
-      { id: 3, name: "Career Support", description: "Career advice and support", category: "Career" },
-      { id: 4, name: "Life Balance", description: "Work-life balance discussions", category: "Lifestyle" },
-    ];
-
-    defaultGroups.forEach(group => this.groups.set(group.id, group));
-    this.currentId = 5;
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { ...insertUser, id, isAdmin: false };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async getGroups(): Promise<Group[]> {
-    return Array.from(this.groups.values());
+    return await db.select().from(groups);
   }
 
   async getGroupById(id: number): Promise<Group | undefined> {
-    return this.groups.get(id);
+    const [group] = await db.select().from(groups).where(eq(groups.id, id));
+    return group;
   }
 
   async getGroupPosts(groupId: number): Promise<Post[]> {
-    return Array.from(this.posts.values())
-      .filter(post => post.groupId === groupId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return await db
+      .select()
+      .from(posts)
+      .where(eq(posts.groupId, groupId))
+      .orderBy(posts.createdAt);
   }
 
   async createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post> {
-    const id = this.currentId++;
-    const newPost: Post = {
-      ...post,
-      id,
-      createdAt: new Date(),
-    };
-    this.posts.set(id, newPost);
+    const [newPost] = await db
+      .insert(posts)
+      .values(post)
+      .returning();
     return newPost;
   }
 
   async joinGroup(userId: number, groupId: number): Promise<void> {
-    this.userGroups.add(`${userId}-${groupId}`);
+    await db
+      .insert(userGroups)
+      .values({ userId, groupId })
+      .onConflictDoNothing();
   }
 
   async leaveGroup(userId: number, groupId: number): Promise<void> {
-    this.userGroups.delete(`${userId}-${groupId}`);
+    await db
+      .delete(userGroups)
+      .where(
+        and(
+          eq(userGroups.userId, userId),
+          eq(userGroups.groupId, groupId)
+        )
+      );
   }
 
   async getUserGroups(userId: number): Promise<Group[]> {
-    const userGroupIds = Array.from(this.userGroups)
-      .filter(key => key.startsWith(`${userId}-`))
-      .map(key => parseInt(key.split('-')[1]));
-    
-    return userGroupIds.map(id => this.groups.get(id)!).filter(Boolean);
+    const result = await db
+      .select({
+        id: groups.id,
+        name: groups.name,
+        description: groups.description,
+        category: groups.category,
+      })
+      .from(userGroups)
+      .innerJoin(groups, eq(userGroups.groupId, groups.id))
+      .where(eq(userGroups.userId, userId));
+
+    return result;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
