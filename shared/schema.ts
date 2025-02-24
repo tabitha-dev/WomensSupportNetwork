@@ -20,6 +20,29 @@ export const users = pgTable("users", {
   socialLinks: text("social_links"),
   customCss: text("custom_css"),
   profileLayout: text("profile_layout").default("classic"),
+  backgroundColor: text("background_color"),
+  textColor: text("text_color"),
+  accentColor: text("accent_color"),
+  fontFamily: text("font_family"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const friendships = pgTable("friendships", {
+  userId: integer("user_id").references(() => users.id),
+  friendId: integer("friend_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const friendRequests = pgTable("friend_requests", {
+  senderId: integer("sender_id").references(() => users.id),
+  receiverId: integer("receiver_id").references(() => users.id),
+  status: text("status").default("pending"), 
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const followers = pgTable("followers", {
+  followerId: integer("follower_id").references(() => users.id),
+  followingId: integer("following_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -77,6 +100,10 @@ export const insertUserSchema = createInsertSchema(users).pick({
   socialLinks: true,
   customCss: true,
   profileLayout: true,
+  backgroundColor: true,
+  textColor: true,
+  accentColor: true,
+  fontFamily: true,
 });
 
 export const insertGroupSchema = createInsertSchema(groups);

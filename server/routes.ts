@@ -147,6 +147,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(posts);
   });
 
+  // Friend system routes
+  app.get("/api/users/:id/friends", async (req, res) => {
+    const friends = await storage.getFriends(parseInt(req.params.id));
+    res.json(friends);
+  });
+
+  app.get("/api/users/friend-requests", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Not authenticated");
+    const requests = await storage.getFriendRequests(req.user!.id);
+    res.json(requests);
+  });
+
+  app.post("/api/users/:id/friend-request", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Not authenticated");
+    await storage.sendFriendRequest(req.user!.id, parseInt(req.params.id));
+    res.sendStatus(200);
+  });
+
+  app.post("/api/users/:id/accept-friend", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Not authenticated");
+    await storage.acceptFriendRequest(parseInt(req.params.id), req.user!.id);
+    res.sendStatus(200);
+  });
+
+  app.post("/api/users/:id/reject-friend", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Not authenticated");
+    await storage.rejectFriendRequest(parseInt(req.params.id), req.user!.id);
+    res.sendStatus(200);
+  });
+
+  // Follow system routes
+  app.get("/api/users/:id/followers", async (req, res) => {
+    const followers = await storage.getFollowers(parseInt(req.params.id));
+    res.json(followers);
+  });
+
+  app.get("/api/users/:id/following", async (req, res) => {
+    const following = await storage.getFollowing(parseInt(req.params.id));
+    res.json(following);
+  });
+
+  app.post("/api/users/:id/follow", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Not authenticated");
+    await storage.followUser(req.user!.id, parseInt(req.params.id));
+    res.sendStatus(200);
+  });
+
+  app.post("/api/users/:id/unfollow", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Not authenticated");
+    await storage.unfollowUser(req.user!.id, parseInt(req.params.id));
+    res.sendStatus(200);
+  });
+
+  app.get("/api/users/:id/is-following", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Not authenticated");
+    const isFollowing = await storage.isFollowing(
+      req.user!.id,
+      parseInt(req.params.id)
+    );
+    res.json(isFollowing);
+  });
+
   app.patch("/api/users/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).send("Not authenticated");

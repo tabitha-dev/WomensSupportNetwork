@@ -28,6 +28,19 @@ export interface IStorage {
   sessionStore: session.Store;
   getUserPosts(userId: number): Promise<Post[]>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
+  // Friend system methods
+  getFriends(userId: number): Promise<User[]>;
+  getFriendRequests(userId: number): Promise<{ sender: User; status: string }[]>;
+  sendFriendRequest(senderId: number, receiverId: number): Promise<void>;
+  acceptFriendRequest(senderId: number, receiverId: number): Promise<void>;
+  rejectFriendRequest(senderId: number, receiverId: number): Promise<void>;
+
+  // Follow system methods
+  getFollowers(userId: number): Promise<User[]>;
+  getFollowing(userId: number): Promise<User[]>;
+  followUser(followerId: number, followingId: number): Promise<void>;
+  unfollowUser(followerId: number, followingId: number): Promise<void>;
+  isFollowing(followerId: number, followingId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -229,6 +242,125 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+  async getFriends(userId: number): Promise<User[]> {
+    const friends = await db
+      .select({
+        friend: users,
+      })
+      .from(friendships)
+      .where(eq(friendships.userId, userId))
+      .innerJoin(users, eq(friendships.friendId, users.id));
+
+    return friends.map((f) => f.friend);
+  }
+
+  async getFriendRequests(userId: number): Promise<{ sender: User; status: string }[]> {
+    const requests = await db
+      .select({
+        sender: users,
+        status: friendRequests.status,
+      })
+      .from(friendRequests)
+      .where(eq(friendRequests.receiverId, userId))
+      .innerJoin(users, eq(friendRequests.senderId, users.id));
+
+    return requests.map((r) => ({ sender: r.sender, status: r.status }));
+  }
+
+  async sendFriendRequest(senderId: number, receiverId: number): Promise<void> {
+    await db
+      .insert(friendRequests)
+      .values({ senderId, receiverId })
+      .onConflictDoNothing();
+  }
+
+  async acceptFriendRequest(senderId: number, receiverId: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(friendRequests)
+        .set({ status: "accepted" })
+        .where(
+          and(
+            eq(friendRequests.senderId, senderId),
+            eq(friendRequests.receiverId, receiverId)
+          )
+        );
+
+      // Create mutual friendship
+      await tx.insert(friendships).values([
+        { userId: senderId, friendId: receiverId },
+        { userId: receiverId, friendId: senderId },
+      ]);
+    });
+  }
+
+  async rejectFriendRequest(senderId: number, receiverId: number): Promise<void> {
+    await db
+      .update(friendRequests)
+      .set({ status: "rejected" })
+      .where(
+        and(
+          eq(friendRequests.senderId, senderId),
+          eq(friendRequests.receiverId, receiverId)
+        )
+      );
+  }
+
+  async getFollowers(userId: number): Promise<User[]> {
+    const followers = await db
+      .select({
+        follower: users,
+      })
+      .from(followers)
+      .where(eq(followers.followingId, userId))
+      .innerJoin(users, eq(followers.followerId, users.id));
+
+    return followers.map((f) => f.follower);
+  }
+
+  async getFollowing(userId: number): Promise<User[]> {
+    const following = await db
+      .select({
+        following: users,
+      })
+      .from(followers)
+      .where(eq(followers.followerId, userId))
+      .innerJoin(users, eq(followers.followingId, users.id));
+
+    return following.map((f) => f.following);
+  }
+
+  async followUser(followerId: number, followingId: number): Promise<void> {
+    await db
+      .insert(followers)
+      .values({ followerId, followingId })
+      .onConflictDoNothing();
+  }
+
+  async unfollowUser(followerId: number, followingId: number): Promise<void> {
+    await db
+      .delete(followers)
+      .where(
+        and(
+          eq(followers.followerId, followerId),
+          eq(followers.followingId, followingId)
+        )
+      );
+  }
+
+  async isFollowing(followerId: number, followingId: number): Promise<boolean> {
+    const [follow] = await db
+      .select()
+      .from(followers)
+      .where(
+        and(
+          eq(followers.followerId, followerId),
+          eq(followers.followingId, followingId)
+        )
+      );
+
+    return !!follow;
   }
 }
 
