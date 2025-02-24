@@ -85,31 +85,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGroupById(id: number): Promise<Group | undefined> {
-    const [group] = await db
-      .select()
-      .from(groups)
-      .where(eq(groups.id, id))
-      .limit(1);
-
-    return group;
+    try {
+      const [group] = await db
+        .select()
+        .from(groups)
+        .where(eq(groups.id, id))
+        .limit(1);
+      return group;
+    } catch (error) {
+      console.error('Error fetching group:', error);
+      return undefined;
+    }
   }
 
   async getGroupPosts(groupId: number): Promise<Post[]> {
-    return await db
-      .select({
-        id: posts.id,
-        content: posts.content,
-        userId: posts.userId,
-        groupId: posts.groupId,
-        imageUrl: posts.imageUrl,
-        musicUrl: posts.musicUrl,
-        postType: posts.postType,
-        createdAt: posts.createdAt,
-        likeCount: posts.likeCount,
-      })
-      .from(posts)
-      .where(eq(posts.groupId, groupId))
-      .orderBy(desc(posts.createdAt));
+    try {
+      return await db
+        .select()
+        .from(posts)
+        .where(eq(posts.groupId, groupId))
+        .orderBy(desc(posts.createdAt));
+    } catch (error) {
+      console.error('Error fetching group posts:', error);
+      return [];
+    }
   }
 
   async createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post> {
@@ -141,10 +140,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async joinGroup(userId: number, groupId: number): Promise<void> {
-    await db
-      .insert(userGroups)
-      .values({ userId, groupId })
-      .onConflictDoNothing();
+    try {
+      await db.transaction(async (tx) => {
+        // Add to userGroups for membership
+        await tx
+          .insert(userGroups)
+          .values({ userId, groupId })
+          .onConflictDoNothing();
+
+        // Add as group member with default role
+        await tx
+          .insert(groupMembers)
+          .values({ userId, groupId, role: 'member' })
+          .onConflictDoNothing();
+      });
+    } catch (error) {
+      console.error('Error joining group:', error);
+      throw error;
+    }
   }
 
   async leaveGroup(userId: number, groupId: number): Promise<void> {
@@ -380,10 +393,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGroupMembers(groupId: number): Promise<GroupMember[]> {
-    return await db
-      .select()
-      .from(groupMembers)
-      .where(eq(groupMembers.groupId, groupId));
+    try {
+      return await db
+        .select()
+        .from(groupMembers)
+        .where(eq(groupMembers.groupId, groupId))
+        .orderBy(asc(groupMembers.joinedAt));
+    } catch (error) {
+      console.error('Error fetching group members:', error);
+      return [];
+    }
   }
 
   async addGroupMember(userId: number, groupId: number, role: string = "member"): Promise<void> {
@@ -405,11 +424,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGroupChat(groupId: number): Promise<GroupChat[]> {
-    return await db
-      .select()
-      .from(groupChat)
-      .where(eq(groupChat.groupId, groupId))
-      .orderBy(asc(groupChat.createdAt));
+    try {
+      return await db
+        .select()
+        .from(groupChat)
+        .where(eq(groupChat.groupId, groupId))
+        .orderBy(asc(groupChat.createdAt));
+    } catch (error) {
+      console.error('Error fetching group chat:', error);
+      return [];
+    }
   }
 
   async createChatMessage(

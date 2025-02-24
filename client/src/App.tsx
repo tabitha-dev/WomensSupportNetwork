@@ -4,7 +4,7 @@ import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
-import { ThemeProvider } from "@/hooks/use-theme";
+import { ThemeProvider } from "./hooks/use-theme";
 import Navigation from "@/components/ui/navigation";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
