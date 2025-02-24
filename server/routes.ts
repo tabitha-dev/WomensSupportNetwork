@@ -147,6 +147,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(posts);
   });
 
+  app.patch("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    // Only allow users to update their own profile
+    if (req.user!.id !== parseInt(req.params.id)) {
+      return res.status(403).send("Not authorized");
+    }
+
+    const user = await storage.updateUser(req.user!.id, req.body);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    // Don't send sensitive information
+    const { password, ...safeUser } = user;
+    res.json(safeUser);
+  });
+
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -1,14 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { User, Post } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useParams } from "wouter";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings } from "lucide-react";
+import { Loader2, Settings, MapPin, Briefcase, Heart, Quote } from "lucide-react";
 import PostComponent from "@/components/post";
 import { motion } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -22,6 +25,16 @@ export default function ProfilePage() {
 
   const { data: posts, isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/posts`],
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: Partial<User>) => {
+      const res = await apiRequest("PATCH", `/api/users/${userId}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+    },
   });
 
   if (isLoadingUser || isLoadingPosts) {
@@ -44,7 +57,14 @@ export default function ProfilePage() {
         transition={{ duration: 0.3 }}
       >
         <Card className="glass-card overflow-hidden">
-          <div className="h-48 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20" />
+          <div 
+            className="h-48 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20"
+            style={user.coverUrl ? { 
+              backgroundImage: `url(${user.coverUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            } : {}}
+          />
           <CardContent className="relative px-6 pb-6">
             <div className="flex justify-between items-end -mt-12">
               <Avatar className="h-24 w-24 border-4 border-background">
@@ -63,6 +83,34 @@ export default function ProfilePage() {
               <h1 className="text-2xl font-bold">{user.displayName}</h1>
               <p className="text-muted-foreground">@{user.username}</p>
               {user.bio && <p className="text-foreground/90">{user.bio}</p>}
+
+              <div className="flex flex-wrap gap-4 mt-4 text-sm text-muted-foreground">
+                {user.location && (
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    {user.location}
+                  </div>
+                )}
+                {user.occupation && (
+                  <div className="flex items-center gap-1">
+                    <Briefcase className="h-4 w-4" />
+                    {user.occupation}
+                  </div>
+                )}
+                {user.relationshipStatus && (
+                  <div className="flex items-center gap-1">
+                    <Heart className="h-4 w-4" />
+                    {user.relationshipStatus}
+                  </div>
+                )}
+              </div>
+
+              {user.favoriteQuote && (
+                <div className="flex items-center gap-2 mt-4 italic text-muted-foreground">
+                  <Quote className="h-4 w-4" />
+                  "{user.favoriteQuote}"
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -71,6 +119,9 @@ export default function ProfilePage() {
           <TabsList className="w-full justify-start border-b rounded-none p-0 h-12">
             <TabsTrigger value="posts" className="data-[state=active]:border-b-2 border-primary rounded-none">
               Posts
+            </TabsTrigger>
+            <TabsTrigger value="about" className="data-[state=active]:border-b-2 border-primary rounded-none">
+              About
             </TabsTrigger>
             <TabsTrigger value="groups" className="data-[state=active]:border-b-2 border-primary rounded-none">
               Groups
@@ -92,8 +143,28 @@ export default function ProfilePage() {
             </div>
           </TabsContent>
 
+          <TabsContent value="about" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>About Me</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {user.interests && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Interests</h3>
+                    <p className="text-muted-foreground">{user.interests}</p>
+                  </div>
+                )}
+                {isOwnProfile && (
+                  <div className="pt-4 border-t">
+                    <Button variant="outline">Customize Profile</Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="groups" className="mt-6">
-            {/* Groups content will be implemented later */}
             <Card>
               <CardContent className="p-8 text-center text-muted-foreground">
                 Groups will be shown here

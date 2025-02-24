@@ -12,6 +12,14 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   coverUrl: text("cover_url"),
   theme: text("theme").default("light"),
+  location: text("location"),
+  interests: text("interests"),
+  occupation: text("occupation"),
+  relationshipStatus: text("relationship_status"),
+  favoriteQuote: text("favorite_quote"),
+  socialLinks: text("social_links"),
+  customCss: text("custom_css"),
+  profileLayout: text("profile_layout").default("classic"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -61,6 +69,14 @@ export const insertUserSchema = createInsertSchema(users).pick({
   bio: true,
   avatarUrl: true,
   theme: true,
+  location: true,
+  interests: true,
+  occupation: true,
+  relationshipStatus: true,
+  favoriteQuote: true,
+  socialLinks: true,
+  customCss: true,
+  profileLayout: true,
 });
 
 export const insertGroupSchema = createInsertSchema(groups);

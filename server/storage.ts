@@ -27,6 +27,7 @@ export interface IStorage {
   isPostLikedByUser(userId: number, postId: number): Promise<boolean>;
   sessionStore: session.Store;
   getUserPosts(userId: number): Promise<Post[]>;
+  updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -203,6 +204,14 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(posts.createdAt));
 
     return userPosts;
+  }
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 }
 
