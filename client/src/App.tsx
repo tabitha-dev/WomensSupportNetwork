@@ -24,18 +24,20 @@ function Router() {
   );
 }
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <Navigation />
-          <Router />
-          <Toaster />
+          <div className="min-h-screen bg-background">
+            <Navigation />
+            <main>
+              <Router />
+            </main>
+            <Toaster />
+          </div>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;

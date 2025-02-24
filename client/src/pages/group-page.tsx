@@ -6,7 +6,6 @@ import PostComponent from "@/components/post";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,6 +19,7 @@ import {
 import { useForm } from "react-hook-form";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 type PostFormData = {
   content: string;
@@ -31,9 +31,16 @@ type ChatFormData = {
   message: string;
 };
 
+interface GroupResponse extends Group {
+  posts: Post[];
+  members: GroupMember[];
+  chatMessages: GroupChat[];
+}
+
 export default function GroupPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { toast } = useToast();
   const groupId = parseInt(id!);
 
   const postForm = useForm<PostFormData>({
@@ -49,25 +56,17 @@ export default function GroupPage() {
     },
   });
 
-  const { data: group, isLoading: isLoadingGroup } = useQuery<Group>({
+  const { data: groupData, isLoading, error } = useQuery<GroupResponse>({
     queryKey: [`/api/groups/${groupId}`],
-    enabled: !!id,
-  });
-
-  const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
-    queryKey: [`/api/groups/${groupId}/posts`],
-    enabled: !!id,
-  });
-
-  const { data: members = [], isLoading: isLoadingMembers } = useQuery<GroupMember[]>({
-    queryKey: [`/api/groups/${groupId}/members`],
-    enabled: !!id,
-  });
-
-  const { data: chatMessages = [], isLoading: isLoadingChat } = useQuery<GroupChat[]>({
-    queryKey: [`/api/groups/${groupId}/chat`],
-    enabled: !!id,
-    refetchInterval: 5000, // Poll every 5 seconds
+    enabled: !isNaN(groupId),
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to load group data. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Group fetch error:", error);
+    },
   });
 
   const createPostMutation = useMutation({
@@ -75,8 +74,20 @@ export default function GroupPage() {
       await apiRequest("POST", `/api/groups/${groupId}/posts`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/posts`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
       postForm.reset();
+      toast({
+        title: "Success",
+        description: "Post created successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create post. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Create post error:", error);
     },
   });
 
@@ -85,8 +96,20 @@ export default function GroupPage() {
       await apiRequest("POST", `/api/groups/${groupId}/chat`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/chat`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
       chatForm.reset();
+      toast({
+        title: "Success",
+        description: "Message sent successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Send message error:", error);
     },
   });
 
@@ -95,11 +118,23 @@ export default function GroupPage() {
       await apiRequest("POST", `/api/groups/${groupId}/join`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/members`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
+      toast({
+        title: "Success",
+        description: "You have joined the group!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to join group. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Join group error:", error);
     },
   });
 
-  if (isLoadingGroup || isLoadingPosts || isLoadingMembers || isLoadingChat) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -107,7 +142,7 @@ export default function GroupPage() {
     );
   }
 
-  if (!group) {
+  if (error || !groupData) {
     return (
       <div className="container mx-auto p-4">
         <Card>
@@ -122,17 +157,17 @@ export default function GroupPage() {
     );
   }
 
-  const isGroupMember = members.some(member => member.userId === user?.id);
+  const isGroupMember = groupData.members.some(member => member.userId === user?.id);
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Banner */}
-      <div 
+      <div
         className="h-64 relative bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20"
         style={
-          group.coverUrl
+          groupData.coverUrl
             ? {
-                backgroundImage: `url(${group.coverUrl})`,
+                backgroundImage: `url(${groupData.coverUrl})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }
@@ -143,10 +178,10 @@ export default function GroupPage() {
         <div className="container mx-auto h-full flex items-end p-8">
           <div className="relative z-10 flex items-center gap-6 text-white">
             <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center border-4 border-background">
-              {group.iconUrl ? (
+              {groupData.iconUrl ? (
                 <img
-                  src={group.iconUrl}
-                  alt={group.name}
+                  src={groupData.iconUrl}
+                  alt={groupData.name}
                   className="w-16 h-16 rounded-full"
                 />
               ) : (
@@ -154,8 +189,8 @@ export default function GroupPage() {
               )}
             </div>
             <div>
-              <h1 className="text-4xl font-bold">{group.name}</h1>
-              <p className="text-lg opacity-90 mt-2">{group.category}</p>
+              <h1 className="text-4xl font-bold">{groupData.name}</h1>
+              <p className="text-lg opacity-90 mt-2">{groupData.category}</p>
             </div>
           </div>
         </div>
@@ -168,9 +203,9 @@ export default function GroupPage() {
           <div className="space-y-6">
             <Card>
               <CardContent className="p-6">
-                <p className="text-lg text-foreground/90">{group.description}</p>
+                <p className="text-lg text-foreground/90">{groupData.description}</p>
                 {!isGroupMember && (
-                  <Button 
+                  <Button
                     className="mt-4"
                     onClick={() => joinGroupMutation.mutate()}
                     disabled={joinGroupMutation.isPending}
@@ -189,7 +224,7 @@ export default function GroupPage() {
                     <CardTitle>Create Post</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <form 
+                    <form
                       onSubmit={postForm.handleSubmit((data) => createPostMutation.mutate(data))}
                       className="space-y-4"
                     >
@@ -229,7 +264,7 @@ export default function GroupPage() {
                         />
                       )}
 
-                      <Button 
+                      <Button
                         type="submit"
                         disabled={createPostMutation.isPending}
                         className="w-full"
@@ -242,10 +277,10 @@ export default function GroupPage() {
 
                 {/* Posts */}
                 <div className="space-y-4">
-                  {posts.map((post) => (
+                  {groupData.posts.map((post) => (
                     <PostComponent key={post.id} post={post} />
                   ))}
-                  {posts.length === 0 && (
+                  {groupData.posts.length === 0 && (
                     <Card>
                       <CardContent className="p-8 text-center text-muted-foreground">
                         No posts yet. Be the first to share something!
@@ -282,7 +317,7 @@ export default function GroupPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="h-[400px] overflow-y-auto mb-4 space-y-4">
-                    {chatMessages.map((message) => (
+                    {groupData.chatMessages.map((message) => (
                       <div
                         key={message.id}
                         className={`flex items-start gap-2 ${
@@ -331,11 +366,11 @@ export default function GroupPage() {
             {/* Members List */}
             <Card>
               <CardHeader>
-                <CardTitle>Members ({members.length})</CardTitle>
+                <CardTitle>Members ({groupData.members.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {members.map((member) => (
+                  {groupData.members.map((member) => (
                     <div key={member.userId} className="flex items-center gap-3">
                       <Avatar>
                         <AvatarFallback>

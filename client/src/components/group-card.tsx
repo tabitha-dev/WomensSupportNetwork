@@ -19,6 +19,7 @@ export default function GroupCard({ group, isJoined }: GroupCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/groups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
     },
   });
 
@@ -28,6 +29,7 @@ export default function GroupCard({ group, isJoined }: GroupCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/groups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
     },
   });
 
@@ -37,12 +39,20 @@ export default function GroupCard({ group, isJoined }: GroupCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="glass-card overflow-hidden group">
+      <Card className="overflow-hidden group">
         <CardHeader className="p-4">
           <CardTitle className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <Users className="w-6 h-6 text-primary" />
+                {group.iconUrl ? (
+                  <img
+                    src={group.iconUrl}
+                    alt={group.name}
+                    className="w-8 h-8 rounded-full"
+                  />
+                ) : (
+                  <Users className="w-6 h-6 text-primary" />
+                )}
               </div>
               <div className="space-y-1">
                 <Link 
