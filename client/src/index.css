@@ -4,9 +4,26 @@
 
 @layer base {
   :root {
-    --gradient-start: #40E0D0;
-    --gradient-middle: #5A32FA;
-    --gradient-end: #7D2AE8;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 255 95% 65%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 255 95% 65%;
+    --radius: 0.75rem;
   }
 
   * {
@@ -14,25 +31,18 @@
   }
 
   body {
-    @apply font-sans antialiased bg-gradient-to-br from-[var(--gradient-start)] via-[var(--gradient-middle)] to-[var(--gradient-end)] min-h-screen;
+    @apply bg-background text-foreground antialiased;
   }
 
   .glass-card {
-    @apply bg-white/80 backdrop-blur-xl border border-white/20 
-           shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]
-           hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.47)]
-           transition-all duration-300 hover:bg-white/90
+    @apply bg-white/90 backdrop-blur-sm border border-white/10 
+           shadow-lg hover:shadow-xl transition-all duration-300 
            hover:translate-y-[-2px];
   }
 
   .nav-glass {
-    @apply bg-white/70 backdrop-blur-xl border-b border-white/20
-           shadow-sm supports-[backdrop-filter]:bg-white/60;
-  }
-
-  .content-container {
-    @apply bg-background/95 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60
-           px-4 py-6 rounded-xl border border-white/20;
+    @apply bg-white/80 backdrop-blur-sm border-b border-white/10 
+           shadow-sm;
   }
 
   .hover-scale {
@@ -40,34 +50,8 @@
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-primary via-purple-500 to-blue-500 
-           bg-clip-text text-transparent font-bold;
-  }
-
-  .animate-fade-in {
-    @apply opacity-0 animate-in fade-in duration-500;
-  }
-
-  .animate-slide-in {
-    @apply opacity-0 animate-in slide-in-from-bottom duration-500;
-  }
-
-  .card-grid {
-    @apply grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
-  }
-
-  .button-glow {
-    @apply relative overflow-hidden;
-  }
-
-  .button-glow::after {
-    @apply content-[''] absolute top-0 left-[-50%] w-[150%] h-full
-           bg-gradient-to-r from-transparent via-white/20 to-transparent
-           transform rotate-[35deg] transition-transform duration-1000;
-  }
-
-  .button-glow:hover::after {
-    @apply translate-x-full;
+    @apply bg-gradient-to-r from-primary/90 to-primary/70
+           bg-clip-text text-transparent font-semibold;
   }
 }
 
