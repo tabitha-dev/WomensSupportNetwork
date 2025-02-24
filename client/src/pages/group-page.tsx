@@ -17,7 +17,7 @@ type PostFormData = {
 export default function GroupPage() {
   const { id } = useParams();
   const { user } = useAuth();
-  const groupId = parseInt(id || "0");
+  const groupId = parseInt(id!);
 
   const form = useForm<PostFormData>({
     defaultValues: {
@@ -27,12 +27,12 @@ export default function GroupPage() {
 
   const { data: group, isLoading: isLoadingGroup } = useQuery<Group>({
     queryKey: [`/api/groups/${groupId}`],
-    enabled: !!groupId && groupId > 0,
+    enabled: !!groupId,
   });
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/groups/${groupId}/posts`],
-    enabled: !!groupId && groupId > 0,
+    enabled: !!groupId,
   });
 
   const createPostMutation = useMutation({
@@ -46,10 +46,6 @@ export default function GroupPage() {
       form.reset();
     },
   });
-
-  if (!groupId || groupId <= 0) {
-    return <div>Invalid group ID</div>;
-  }
 
   if (isLoadingGroup || isLoadingPosts) {
     return (
