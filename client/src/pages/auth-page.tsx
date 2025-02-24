@@ -9,6 +9,7 @@ import { insertUserSchema } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { motion } from "framer-motion";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -39,11 +40,16 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <div className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+      <motion.div 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex-1 flex items-center justify-center p-4"
+      >
+        <Card className="w-full max-w-md glass-card">
           <CardContent className="pt-6">
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
@@ -70,7 +76,7 @@ export default function AuthPage() {
                       className="w-full"
                       disabled={loginMutation.isPending}
                     >
-                      Login
+                      {loginMutation.isPending ? "Logging in..." : "Login"}
                     </Button>
                   </form>
                 </Form>
@@ -106,7 +112,7 @@ export default function AuthPage() {
                       className="w-full"
                       disabled={registerMutation.isPending}
                     >
-                      Register
+                      {registerMutation.isPending ? "Creating Account..." : "Register"}
                     </Button>
                   </form>
                 </Form>
@@ -114,9 +120,14 @@ export default function AuthPage() {
             </Tabs>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
 
-      <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-12 text-primary-foreground">
+      <motion.div 
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+        className="hidden lg:flex flex-1 bg-primary items-center justify-center p-12 text-primary-foreground"
+      >
         <div className="max-w-xl">
           <h1 className="text-4xl font-bold mb-6">
             Welcome to Women's Support Network
@@ -127,7 +138,7 @@ export default function AuthPage() {
             family, and personal growth.
           </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
