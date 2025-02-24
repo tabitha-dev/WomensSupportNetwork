@@ -1,0 +1,52 @@
+I want to create MERN Social Media
+A social media application built with the MERN stack, featuring functionalities such as user profiles, posts, comments, and likes. It also includes an admin panel for managing users and content. 
+ I want it to be hosted free on GITHUB modern sleek easy to use professional but have flair  using a color like canvas purple blue
+
+You have come to the right place if you are trying to restructure your life to become a happier version of yourself. Many of us do not have friends and family to turn to for support. Oftentimes, we don't see it when we are growing up, therefore we don't even know where to begin to create one. The next thing you know we are thrown into womanhood, juggling education, career, and family. This is a place where women can gather to support each other. We aim to help women build healthy habits and make new friends along the way. Both listening and giving advice are encouraged. To help navigate please take a short test so that we can connect you to the groups that we think you will enjoy. Leading you to one step closer to making friends with like-minded people. You can leave a group at any time and the test is not mandatory you are able to manually select the groups you are interested in.
+
+There will be no politics or religious views here, nor any selling of merchandise. This is a place for making friends and getting advice.
+
+Groups:
+Tech 
+Organization
+Developing personal schedule
+Developing a family schedule
+School
+Career
+
+Health
+    Pregnancy
+    Menopause
+    Miscarriage 
+    Weightloss
+    Stress
+    Mental
+    Cancer
+    
+Vent:
+       Vent about school
+       Vent about husband
+       Vent about inlaws
+       Vent about career
+       Vent about family
+       Vent about Health
+       Vent about Life in general
+   
+Gratitude
+Meditation
+Connect to people around your age
+        20
+        30
+        40
+        50
+Advice section
+Resource section
+Messaging board
+Chat rooms and Messenger
+Friend request
+Blocking
+Report
+Login/Logout
+
+
+
