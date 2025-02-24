@@ -21,21 +21,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/groups/:id", async (req, res) => {
     try {
       const groupId = parseInt(req.params.id);
+      console.log('Routes: Received request for group:', groupId);
+
       if (isNaN(groupId)) {
-        console.error("Invalid group ID:", req.params.id);
+        console.error('Routes: Invalid group ID:', req.params.id);
         return res.status(400).json({ error: "Invalid group ID" });
       }
 
-      console.log("Fetching group with ID:", groupId);
-
       // Get the group
       const group = await storage.getGroupById(groupId);
+      console.log('Routes: Group fetch result:', group);
+
       if (!group) {
-        console.error("Group not found:", groupId);
+        console.error('Routes: Group not found:', groupId);
         return res.status(404).json({ error: "Group not found" });
       }
 
       // Get related data
+      console.log('Routes: Fetching related data for group:', groupId);
       const [posts, members, chatMessages] = await Promise.all([
         storage.getGroupPosts(groupId),
         storage.getGroupMembers(groupId),
@@ -50,17 +53,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         chatMessages: chatMessages || []
       };
 
-      console.log("Group data retrieved successfully:", {
+      console.log('Routes: Sending complete group response:', {
         id: groupResponse.id,
         name: groupResponse.name,
         memberCount: groupResponse.members.length,
-        postCount: groupResponse.posts.length
+        postCount: groupResponse.posts.length,
+        messageCount: groupResponse.chatMessages.length
       });
 
       res.json(groupResponse);
     } catch (error) {
-      console.error("Error fetching group:", error);
-      res.status(500).json({ error: "Failed to fetch group" });
+      console.error('Routes: Error in group fetch:', error);
+      res.status(500).json({ 
+        error: "Failed to fetch group",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

@@ -86,31 +86,54 @@ export class DatabaseStorage implements IStorage {
 
   async getGroupById(id: number): Promise<Group | undefined> {
     try {
-      console.log('Fetching group with ID:', id);
-      const [group] = await db
-        .select()
+      console.log('Storage: Fetching group with ID:', id);
+
+      // Explicitly type the selection to match Group type
+      const result = await db
+        .select({
+          id: groups.id,
+          name: groups.name,
+          description: groups.description,
+          category: groups.category,
+          iconUrl: groups.iconUrl,
+          coverUrl: groups.coverUrl,
+          isPrivate: groups.isPrivate,
+          createdAt: groups.createdAt,
+        })
         .from(groups)
         .where(eq(groups.id, id))
         .limit(1);
 
-      console.log('Found group:', group);
+      console.log('Storage: Raw database result:', result);
+
+      if (!result || result.length === 0) {
+        console.log('Storage: No group found with ID:', id);
+        return undefined;
+      }
+
+      const group = result[0];
+      console.log('Storage: Successfully found group:', group);
       return group;
     } catch (error) {
-      console.error('Error in getGroupById:', error);
-      return undefined;
+      console.error('Storage: Error in getGroupById:', error);
+      throw error; // Let the route handler deal with the error
     }
   }
 
   async getGroupPosts(groupId: number): Promise<Post[]> {
     try {
-      return await db
+      console.log('Storage: Fetching posts for group:', groupId);
+      const result = await db
         .select()
         .from(posts)
         .where(eq(posts.groupId, groupId))
         .orderBy(desc(posts.createdAt));
+
+      console.log(`Storage: Found ${result.length} posts for group ${groupId}`);
+      return result;
     } catch (error) {
-      console.error('Error fetching group posts:', error);
-      return [];
+      console.error('Storage: Error fetching group posts:', error);
+      throw error;
     }
   }
 
@@ -398,14 +421,18 @@ export class DatabaseStorage implements IStorage {
 
   async getGroupMembers(groupId: number): Promise<GroupMember[]> {
     try {
-      return await db
+      console.log('Storage: Fetching members for group:', groupId);
+      const result = await db
         .select()
         .from(groupMembers)
         .where(eq(groupMembers.groupId, groupId))
         .orderBy(asc(groupMembers.joinedAt));
+
+      console.log(`Storage: Found ${result.length} members for group ${groupId}`);
+      return result;
     } catch (error) {
-      console.error('Error fetching group members:', error);
-      return [];
+      console.error('Storage: Error fetching group members:', error);
+      throw error;
     }
   }
 
