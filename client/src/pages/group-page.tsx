@@ -32,10 +32,10 @@ type ChatFormData = {
 };
 
 export default function GroupPage() {
-  const { id } = useParams();
+  const params = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
-  const groupId = parseInt(id!);
+  const groupId = parseInt(params.id || "");
 
   const postForm = useForm<PostFormData>({
     defaultValues: {
