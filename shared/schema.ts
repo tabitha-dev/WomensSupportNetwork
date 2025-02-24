@@ -137,3 +137,11 @@ export type Post = typeof posts.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type GroupChat = typeof groupChat.$inferSelect;
 export type GroupMember = typeof groupMembers.$inferSelect;
+
+export type GroupWithRelations = Group & {
+  posts?: Post[];
+  members?: GroupMember[];
+  chatMessages?: GroupChat[];
+};
+
+export type { Group, Post, Comment, GroupChat, GroupMember };
