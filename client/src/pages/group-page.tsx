@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import {
   Loader2,
@@ -92,7 +92,7 @@ export default function GroupPage() {
 
   const joinGroupMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", `/api/groups/${groupId}/members`);
+      await apiRequest("POST", `/api/groups/${groupId}/join`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/members`] });
@@ -101,7 +101,7 @@ export default function GroupPage() {
 
   if (isLoadingGroup || isLoadingPosts || isLoadingMembers || isLoadingChat) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -125,142 +125,162 @@ export default function GroupPage() {
   const isGroupMember = members.some(member => member.userId === user?.id);
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+    <div className="min-h-screen bg-background">
+      {/* Hero Banner */}
+      <div 
+        className="h-64 relative bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20"
+        style={
+          group.coverUrl
+            ? {
+                backgroundImage: `url(${group.coverUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : {}
+        }
       >
-        <Card className="glass-card overflow-hidden">
-          <div 
-            className="h-48 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20"
-            style={
-              group.coverUrl
-                ? {
-                    backgroundImage: `url(${group.coverUrl})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }
-                : {}
-            }
-          />
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  {group.iconUrl ? (
-                    <img
-                      src={group.iconUrl}
-                      alt={group.name}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <Users className="w-6 h-6 text-primary" />
-                  )}
-                </div>
-                <div>
-                  <CardTitle>{group.name}</CardTitle>
-                  <p className="text-muted-foreground mt-1">{group.category}</p>
-                </div>
-              </div>
-              {!isGroupMember && (
-                <Button 
-                  onClick={() => joinGroupMutation.mutate()}
-                  disabled={joinGroupMutation.isPending}
-                >
-                  Join Group
-                </Button>
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="container mx-auto h-full flex items-end p-8">
+          <div className="relative z-10 flex items-center gap-6 text-white">
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center border-4 border-background">
+              {group.iconUrl ? (
+                <img
+                  src={group.iconUrl}
+                  alt={group.name}
+                  className="w-16 h-16 rounded-full"
+                />
+              ) : (
+                <Users className="w-12 h-12" />
               )}
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-foreground/90">{group.description}</p>
-          </CardContent>
-        </Card>
+            <div>
+              <h1 className="text-4xl font-bold">{group.name}</h1>
+              <p className="text-lg opacity-90 mt-2">{group.category}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {isGroupMember ? (
-          <Tabs defaultValue="posts" className="mt-6">
-            <TabsList>
-              <TabsTrigger value="posts">Posts</TabsTrigger>
-              <TabsTrigger value="chat">Group Chat</TabsTrigger>
-              <TabsTrigger value="members">Members</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="posts" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Create Post</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form 
-                    onSubmit={postForm.handleSubmit((data) => createPostMutation.mutate(data))}
-                    className="space-y-4"
+      {/* Main Content */}
+      <div className="container mx-auto p-4 -mt-8">
+        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+          {/* Main Column */}
+          <div className="space-y-6">
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-lg text-foreground/90">{group.description}</p>
+                {!isGroupMember && (
+                  <Button 
+                    className="mt-4"
+                    onClick={() => joinGroupMutation.mutate()}
+                    disabled={joinGroupMutation.isPending}
                   >
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant={postForm.watch("postType") === "text" ? "default" : "outline"}
-                        onClick={() => postForm.setValue("postType", "text")}
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={postForm.watch("postType") === "image" ? "default" : "outline"}
-                        onClick={() => postForm.setValue("postType", "image")}
-                      >
-                        <ImageIcon className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={postForm.watch("postType") === "music" ? "default" : "outline"}
-                        onClick={() => postForm.setValue("postType", "music")}
-                      >
-                        <Music className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    Join Group
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
 
-                    <Textarea
-                      placeholder="Share your thoughts with the group..."
-                      {...postForm.register("content")}
-                    />
-
-                    {(postForm.watch("postType") === "image" || postForm.watch("postType") === "music") && (
-                      <Input
-                        placeholder={`Enter ${postForm.watch("postType")} URL`}
-                        {...postForm.register("mediaUrl")}
-                      />
-                    )}
-
-                    <Button 
-                      type="submit"
-                      disabled={createPostMutation.isPending}
-                      className="flex items-center gap-2"
+            {isGroupMember ? (
+              <>
+                {/* Create Post */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Create Post</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form 
+                      onSubmit={postForm.handleSubmit((data) => createPostMutation.mutate(data))}
+                      className="space-y-4"
                     >
-                      <Send className="h-4 w-4" />
-                      Post
-                    </Button>
-                  </form>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={postForm.watch("postType") === "text" ? "default" : "outline"}
+                          onClick={() => postForm.setValue("postType", "text")}
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={postForm.watch("postType") === "image" ? "default" : "outline"}
+                          onClick={() => postForm.setValue("postType", "image")}
+                        >
+                          <ImageIcon className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={postForm.watch("postType") === "music" ? "default" : "outline"}
+                          onClick={() => postForm.setValue("postType", "music")}
+                        >
+                          <Music className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <Textarea
+                        placeholder="Share your thoughts with the group..."
+                        {...postForm.register("content")}
+                      />
+
+                      {(postForm.watch("postType") === "image" || postForm.watch("postType") === "music") && (
+                        <Input
+                          placeholder={`Enter ${postForm.watch("postType")} URL`}
+                          {...postForm.register("mediaUrl")}
+                        />
+                      )}
+
+                      <Button 
+                        type="submit"
+                        disabled={createPostMutation.isPending}
+                        className="w-full"
+                      >
+                        Post
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                {/* Posts */}
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <PostComponent key={post.id} post={post} />
+                  ))}
+                  {posts.length === 0 && (
+                    <Card>
+                      <CardContent className="p-8 text-center text-muted-foreground">
+                        No posts yet. Be the first to share something!
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <h3 className="text-lg font-semibold mb-2">Join this group to participate</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Join this group to access posts, chat with members, and be part of the community.
+                  </p>
+                  <Button
+                    onClick={() => joinGroupMutation.mutate()}
+                    disabled={joinGroupMutation.isPending}
+                  >
+                    Join Group
+                  </Button>
                 </CardContent>
               </Card>
+            )}
+          </div>
 
-              <div className="space-y-4 mt-6">
-                {posts.map((post) => (
-                  <PostComponent key={post.id} post={post} />
-                ))}
-                {posts.length === 0 && (
-                  <Card>
-                    <CardContent className="p-8 text-center text-muted-foreground">
-                      No posts yet. Be the first to share something!
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="chat" className="mt-6">
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Group Chat */}
+            {isGroupMember && (
               <Card>
-                <CardContent className="p-4">
+                <CardHeader>
+                  <CardTitle>Group Chat</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="h-[400px] overflow-y-auto mb-4 space-y-4">
                     {chatMessages.map((message) => (
                       <div
@@ -306,13 +326,17 @@ export default function GroupPage() {
                   </form>
                 </CardContent>
               </Card>
-            </TabsContent>
+            )}
 
-            <TabsContent value="members" className="mt-6">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {members.map((member) => (
-                  <Card key={member.userId}>
-                    <CardContent className="p-4 flex items-center gap-4">
+            {/* Members List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Members ({members.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {members.map((member) => (
+                    <div key={member.userId} className="flex items-center gap-3">
                       <Avatar>
                         <AvatarFallback>
                           {member.role?.charAt(0).toUpperCase() ?? 'M'}
@@ -324,29 +348,14 @@ export default function GroupPage() {
                           Joined {new Date(member.joinedAt!).toLocaleDateString()}
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <Card className="mt-6">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-lg font-semibold mb-2">Join this group to participate</h3>
-              <p className="text-muted-foreground mb-4">
-                Join this group to access posts, chat with members, and be part of the community.
-              </p>
-              <Button
-                onClick={() => joinGroupMutation.mutate()}
-                disabled={joinGroupMutation.isPending}
-              >
-                Join Group
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </motion.div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
