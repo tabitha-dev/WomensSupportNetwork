@@ -1,6 +1,7 @@
-import { users, groups, posts, userGroups, comments, likes, groupMembers, groupChat, type User, type InsertUser, type Group, type Post, type Comment, type GroupMember, type GroupChat, type GroupWithRelations } from "@shared/schema";
+import { users, groups, posts, userGroups, comments, likes, groupMembers, groupChat, friendships, friendRequests, followers } from "@shared/schema";
+import type { User, InsertUser, Group, Post, Comment, GroupMember, GroupChat, GroupWithRelations } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, sql } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool } from "./db";
@@ -19,7 +20,6 @@ export interface IStorage {
   joinGroup(userId: number, groupId: number): Promise<void>;
   leaveGroup(userId: number, groupId: number): Promise<void>;
   getUserGroups(userId: number): Promise<Group[]>;
-  // New methods for social features
   getPostComments(postId: number): Promise<(Comment & { user: User })[]>;
   createComment(userId: number, postId: number, content: string): Promise<Comment>;
   likePost(userId: number, postId: number): Promise<void>;
@@ -28,26 +28,19 @@ export interface IStorage {
   sessionStore: session.Store;
   getUserPosts(userId: number): Promise<Post[]>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
-  // Friend system methods
   getFriends(userId: number): Promise<User[]>;
   getFriendRequests(userId: number): Promise<{ sender: User; status: string }[]>;
   sendFriendRequest(senderId: number, receiverId: number): Promise<void>;
   acceptFriendRequest(senderId: number, receiverId: number): Promise<void>;
   rejectFriendRequest(senderId: number, receiverId: number): Promise<void>;
-
-  // Follow system methods
   getFollowers(userId: number): Promise<User[]>;
   getFollowing(userId: number): Promise<User[]>;
   followUser(followerId: number, followingId: number): Promise<void>;
   unfollowUser(followerId: number, followingId: number): Promise<void>;
   isFollowing(followerId: number, followingId: number): Promise<boolean>;
-
-  // Group member methods
   getGroupMembers(groupId: number): Promise<GroupMember[]>;
   addGroupMember(userId: number, groupId: number, role?: string): Promise<void>;
   removeGroupMember(userId: number, groupId: number): Promise<void>;
-
-  // Group chat methods
   getGroupChat(groupId: number): Promise<GroupChat[]>;
   createChatMessage(userId: number, groupId: number, message: string): Promise<GroupChat>;
 }
@@ -88,7 +81,6 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Storage: Fetching group with ID:', id);
 
-      // Get the base group
       const [group] = await db
         .select()
         .from(groups)
@@ -101,7 +93,6 @@ export class DatabaseStorage implements IStorage {
 
       console.log('Storage: Found base group:', group);
 
-      // Get all related data
       const [groupPostsData, groupMembersData, chatMessagesData] = await Promise.all([
         db
           .select()
@@ -126,7 +117,6 @@ export class DatabaseStorage implements IStorage {
         chatCount: chatMessagesData.length
       });
 
-      // Combine everything into a GroupWithRelations object
       const groupWithRelations: GroupWithRelations = {
         ...group,
         posts: groupPostsData,
@@ -189,13 +179,11 @@ export class DatabaseStorage implements IStorage {
   async joinGroup(userId: number, groupId: number): Promise<void> {
     try {
       await db.transaction(async (tx) => {
-        // Add to userGroups for membership
         await tx
           .insert(userGroups)
           .values({ userId, groupId })
           .onConflictDoNothing();
 
-        // Add as group member with default role
         await tx
           .insert(groupMembers)
           .values({ userId, groupId, role: 'member' })
@@ -271,7 +259,9 @@ export class DatabaseStorage implements IStorage {
 
       await tx
         .update(posts)
-        .set({ likeCount: posts.likeCount + 1 })
+        .set({ 
+          likeCount: sql`${posts.likeCount} + 1` 
+        })
         .where(eq(posts.id, postId));
     });
   }
@@ -280,14 +270,18 @@ export class DatabaseStorage implements IStorage {
     await db.transaction(async (tx) => {
       await tx
         .delete(likes)
-        .where(and(
-          eq(likes.userId, userId),
-          eq(likes.postId, postId)
-        ));
+        .where(
+          and(
+            eq(likes.userId, userId),
+            eq(likes.postId, postId)
+          )
+        );
 
       await tx
         .update(posts)
-        .set({ likeCount: posts.likeCount - 1 })
+        .set({ 
+          likeCount: sql`${posts.likeCount} - 1` 
+        })
         .where(eq(posts.id, postId));
     });
   }
@@ -321,7 +315,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
   async getFriends(userId: number): Promise<User[]> {
-    const friends = await db
+    const result = await db
       .select({
         friend: users,
       })
@@ -329,11 +323,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(friendships.userId, userId))
       .innerJoin(users, eq(friendships.friendId, users.id));
 
-    return friends.map((f) => f.friend);
+    return result.map((f) => f.friend);
   }
 
   async getFriendRequests(userId: number): Promise<{ sender: User; status: string }[]> {
-    const requests = await db
+    const result = await db
       .select({
         sender: users,
         status: friendRequests.status,
@@ -342,7 +336,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(friendRequests.receiverId, userId))
       .innerJoin(users, eq(friendRequests.senderId, users.id));
 
-    return requests.map((r) => ({ sender: r.sender, status: r.status }));
+    return result.map((r) => ({ 
+      sender: r.sender, 
+      status: r.status || 'pending' 
+    }));
   }
 
   async sendFriendRequest(senderId: number, receiverId: number): Promise<void> {
@@ -364,7 +361,6 @@ export class DatabaseStorage implements IStorage {
           )
         );
 
-      // Create mutual friendship
       await tx.insert(friendships).values([
         { userId: senderId, friendId: receiverId },
         { userId: receiverId, friendId: senderId },
@@ -385,7 +381,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFollowers(userId: number): Promise<User[]> {
-    const followers = await db
+    const result = await db
       .select({
         follower: users,
       })
@@ -393,11 +389,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(followers.followingId, userId))
       .innerJoin(users, eq(followers.followerId, users.id));
 
-    return followers.map((f) => f.follower);
+    return result.map((f) => f.follower);
   }
 
   async getFollowing(userId: number): Promise<User[]> {
-    const following = await db
+    const result = await db
       .select({
         following: users,
       })
@@ -405,7 +401,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(followers.followerId, userId))
       .innerJoin(users, eq(followers.followingId, users.id));
 
-    return following.map((f) => f.following);
+    return result.map((f) => f.following);
   }
 
   async followUser(followerId: number, followingId: number): Promise<void> {

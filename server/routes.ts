@@ -2,9 +2,74 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
+import { upload } from "./upload";
+import fs from "fs/promises";
+import path from "path";
+import express from "express";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Create upload directories if they don't exist
+  await fs.mkdir("uploads/music", { recursive: true });
+  await fs.mkdir("uploads/avatars", { recursive: true });
+
   setupAuth(app);
+
+  // File upload endpoints
+  app.post("/api/users/avatar", upload.single("avatar"), async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      const user = await storage.updateUser(req.user!.id, { avatarUrl });
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { password, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      res.status(500).json({ error: "Failed to upload avatar" });
+    }
+  });
+
+  app.post("/api/groups/:groupId/posts/music", upload.single("music"), async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const musicUrl = `/uploads/music/${req.file.filename}`;
+      const post = await storage.createPost({
+        content: req.body.content || "Shared a music track",
+        userId: req.user!.id,
+        groupId: parseInt(req.params.groupId),
+        postType: "music",
+        musicUrl,
+        imageUrl: null,
+        likeCount: 0,
+      });
+
+      res.status(201).json(post);
+    } catch (error) {
+      console.error("Error uploading music:", error);
+      res.status(500).json({ error: "Failed to upload music" });
+    }
+  });
+
+  // Serve uploaded files
+  app.use("/uploads", express.static("uploads"));
 
   // Get all groups
   app.get("/api/groups", async (req, res) => {

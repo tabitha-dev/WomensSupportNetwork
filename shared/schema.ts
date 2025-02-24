@@ -27,6 +27,27 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Friendship system tables
+export const friendships = pgTable("friendships", {
+  userId: integer("user_id").references(() => users.id),
+  friendId: integer("friend_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const friendRequests = pgTable("friend_requests", {
+  senderId: integer("sender_id").references(() => users.id),
+  receiverId: integer("receiver_id").references(() => users.id),
+  status: text("status").default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Follower system
+export const followers = pgTable("followers", {
+  followerId: integer("follower_id").references(() => users.id),
+  followingId: integer("following_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const groups = pgTable("groups", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -65,25 +86,6 @@ export const groupChat = pgTable("group_chat", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const friendships = pgTable("friendships", {
-  userId: integer("user_id").references(() => users.id),
-  friendId: integer("friend_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const friendRequests = pgTable("friend_requests", {
-  senderId: integer("sender_id").references(() => users.id),
-  receiverId: integer("receiver_id").references(() => users.id),
-  status: text("status").default("pending"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const followers = pgTable("followers", {
-  followerId: integer("follower_id").references(() => users.id),
-  followingId: integer("following_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
@@ -103,7 +105,6 @@ export const userGroups = pgTable("user_groups", {
   groupId: integer("group_id").references(() => groups.id),
 });
 
-// Schema for insert operations
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -125,7 +126,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
   fontFamily: true,
 });
 
-// Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Group = typeof groups.$inferSelect;
