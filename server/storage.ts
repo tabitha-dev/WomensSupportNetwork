@@ -1,4 +1,4 @@
-import { users, groups, posts, userGroups, type User, type InsertUser, type Group, type Post } from "@shared/schema";
+import { users, groups, posts, userGroups, comments, likes, type User, type InsertUser, type Group, type Post, type Comment } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
@@ -15,10 +15,16 @@ export interface IStorage {
   getGroupById(id: number): Promise<Group | undefined>;
   getGroupPosts(groupId: number): Promise<Post[]>;
   createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post>;
+  updatePost(postId: number, userId: number, content: string): Promise<Post | undefined>;
   joinGroup(userId: number, groupId: number): Promise<void>;
   leaveGroup(userId: number, groupId: number): Promise<void>;
   getUserGroups(userId: number): Promise<Group[]>;
-  updatePost(postId: number, userId: number, content: string): Promise<Post | undefined>;
+  // New methods for social features
+  getPostComments(postId: number): Promise<(Comment & { user: User })[]>;
+  createComment(userId: number, postId: number, content: string): Promise<Comment>;
+  likePost(userId: number, postId: number): Promise<void>;
+  unlikePost(userId: number, postId: number): Promise<void>;
+  isPostLikedByUser(userId: number, postId: number): Promise<boolean>;
   sessionStore: session.Store;
 }
 
@@ -75,6 +81,18 @@ export class DatabaseStorage implements IStorage {
     return newPost;
   }
 
+  async updatePost(postId: number, userId: number, content: string): Promise<Post | undefined> {
+    const [post] = await db
+      .update(posts)
+      .set({ content })
+      .where(and(
+        eq(posts.id, postId),
+        eq(posts.userId, userId)
+      ))
+      .returning();
+    return post;
+  }
+
   async joinGroup(userId: number, groupId: number): Promise<void> {
     await db
       .insert(userGroups)
@@ -100,6 +118,8 @@ export class DatabaseStorage implements IStorage {
         name: groups.name,
         description: groups.description,
         category: groups.category,
+        createdAt: groups.createdAt,
+        iconUrl: groups.iconUrl,
       })
       .from(userGroups)
       .innerJoin(groups, eq(userGroups.groupId, groups.id))
@@ -108,16 +128,71 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async updatePost(postId: number, userId: number, content: string): Promise<Post | undefined> {
-    const [post] = await db
-      .update(posts)
-      .set({ content })
-      .where(and(
-        eq(posts.id, postId),
-        eq(posts.userId, userId)
-      ))
+  async getPostComments(postId: number): Promise<(Comment & { user: User })[]> {
+    const result = await db
+      .select({
+        id: comments.id,
+        content: comments.content,
+        createdAt: comments.createdAt,
+        user: users,
+      })
+      .from(comments)
+      .innerJoin(users, eq(comments.userId, users.id))
+      .where(eq(comments.postId, postId))
+      .orderBy(comments.createdAt);
+
+    return result as (Comment & { user: User })[];
+  }
+
+  async createComment(userId: number, postId: number, content: string): Promise<Comment> {
+    const [comment] = await db
+      .insert(comments)
+      .values({ userId, postId, content })
       .returning();
-    return post;
+
+    return comment;
+  }
+
+  async likePost(userId: number, postId: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(likes)
+        .values({ userId, postId })
+        .onConflictDoNothing();
+
+      await tx
+        .update(posts)
+        .set({ likeCount: posts.likeCount + 1 })
+        .where(eq(posts.id, postId));
+    });
+  }
+
+  async unlikePost(userId: number, postId: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(likes)
+        .where(and(
+          eq(likes.userId, userId),
+          eq(likes.postId, postId)
+        ));
+
+      await tx
+        .update(posts)
+        .set({ likeCount: posts.likeCount - 1 })
+        .where(eq(posts.id, postId));
+    });
+  }
+
+  async isPostLikedByUser(userId: number, postId: number): Promise<boolean> {
+    const [like] = await db
+      .select()
+      .from(likes)
+      .where(and(
+        eq(likes.userId, userId),
+        eq(likes.postId, postId)
+      ));
+
+    return !!like;
   }
 }
 

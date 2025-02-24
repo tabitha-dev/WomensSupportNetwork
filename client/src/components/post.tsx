@@ -8,7 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import EmojiPicker from 'emoji-picker-react';
-import { Smile, Edit2, Check, X } from "lucide-react";
+import { 
+  Smile, 
+  Edit2, 
+  Check, 
+  X, 
+  Heart, 
+  MessageCircle,
+  Send 
+} from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -26,9 +34,20 @@ export default function PostComponent({ post }: PostProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(post.content);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState("");
 
   const { data: author } = useQuery<User>({
     queryKey: [`/api/users/${post.userId}`],
+  });
+
+  const { data: comments = [] } = useQuery({
+    queryKey: [`/api/posts/${post.id}/comments`],
+    enabled: showComments,
+  });
+
+  const { data: isLiked = false } = useQuery({
+    queryKey: [`/api/posts/${post.id}/liked`],
   });
 
   const updatePostMutation = useMutation({
@@ -38,6 +57,26 @@ export default function PostComponent({ post }: PostProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
       setIsEditing(false);
+    },
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", `/api/posts/${post.id}/like`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/liked`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
+    },
+  });
+
+  const commentMutation = useMutation({
+    mutationFn: async (content: string) => {
+      await apiRequest("POST", `/api/posts/${post.id}/comments`, { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/comments`] });
+      setNewComment("");
     },
   });
 
@@ -80,7 +119,7 @@ export default function PostComponent({ post }: PostProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         {isEditing ? (
           <div className="space-y-2">
             <Textarea
@@ -122,21 +161,80 @@ export default function PostComponent({ post }: PostProps) {
           </div>
         ) : (
           <div className="relative">
-            <p className="whitespace-pre-wrap">{post.content}</p>
-            <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-              <PopoverTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="absolute top-0 right-0"
-                >
-                  <Smile className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="p-0">
-                <EmojiPicker onEmojiClick={onEmojiClick} />
-              </PopoverContent>
-            </Popover>
+            <p className="whitespace-pre-wrap pb-4">{post.content}</p>
+            <div className="flex items-center gap-4 pt-2 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => likeMutation.mutate()}
+                className={isLiked ? "text-red-500" : ""}
+              >
+                <Heart className={`h-4 w-4 mr-1 ${isLiked ? "fill-current" : ""}`} />
+                {post.likeCount || 0}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowComments(!showComments)}
+              >
+                <MessageCircle className="h-4 w-4 mr-1" />
+                {comments.length}
+              </Button>
+              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                <PopoverTrigger asChild>
+                  <Button size="sm" variant="ghost">
+                    <Smile className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0">
+                  <EmojiPicker onEmojiClick={onEmojiClick} />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        )}
+
+        {showComments && (
+          <div className="pt-4 space-y-4">
+            <div className="flex gap-2">
+              <Textarea
+                placeholder="Write a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="min-h-[60px]"
+              />
+              <Button
+                size="icon"
+                onClick={() => commentMutation.mutate(newComment)}
+                disabled={!newComment.trim() || commentMutation.isPending}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {comments.map((comment) => (
+                <div key={comment.id} className="flex items-start gap-2 p-2 rounded-lg bg-muted/50">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback>
+                      {comment.user.displayName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-medium">
+                        {comment.user.displayName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(comment.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-sm">{comment.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>

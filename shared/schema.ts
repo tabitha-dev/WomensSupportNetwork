@@ -9,6 +9,8 @@ export const users = pgTable("users", {
   displayName: text("display_name").notNull(),
   bio: text("bio"),
   isAdmin: boolean("is_admin").default(false),
+  avatarUrl: text("avatar_url"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const groups = pgTable("groups", {
@@ -16,6 +18,8 @@ export const groups = pgTable("groups", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   category: text("category").notNull(),
+  iconUrl: text("icon_url"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const posts = pgTable("posts", {
@@ -23,6 +27,21 @@ export const posts = pgTable("posts", {
   content: text("content").notNull(),
   userId: integer("user_id").references(() => users.id),
   groupId: integer("group_id").references(() => groups.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  likeCount: integer("like_count").default(0),
+});
+
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  userId: integer("user_id").references(() => users.id),
+  postId: integer("post_id").references(() => posts.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const likes = pgTable("likes", {
+  userId: integer("user_id").references(() => users.id),
+  postId: integer("post_id").references(() => posts.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -36,12 +55,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   displayName: true,
   bio: true,
+  avatarUrl: true,
 });
 
 export const insertGroupSchema = createInsertSchema(groups);
 export const insertPostSchema = createInsertSchema(posts);
+export const insertCommentSchema = createInsertSchema(comments);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Group = typeof groups.$inferSelect;
 export type Post = typeof posts.$inferSelect;
+export type Comment = typeof comments.$inferSelect;
