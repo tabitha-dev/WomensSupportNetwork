@@ -28,7 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid group ID" });
       }
 
-      // Get the group
+      // Get the group with all related data
       const group = await storage.getGroupById(groupId);
       console.log('Routes: Group fetch result:', group);
 
@@ -37,31 +37,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Group not found" });
       }
 
-      // Get related data
-      console.log('Routes: Fetching related data for group:', groupId);
-      const [posts, members, chatMessages] = await Promise.all([
-        storage.getGroupPosts(groupId),
-        storage.getGroupMembers(groupId),
-        storage.getGroupChat(groupId)
-      ]);
-
-      // Combine all data
-      const groupResponse = {
-        ...group,
-        posts: posts || [],
-        members: members || [],
-        chatMessages: chatMessages || []
-      };
-
       console.log('Routes: Sending complete group response:', {
-        id: groupResponse.id,
-        name: groupResponse.name,
-        memberCount: groupResponse.members.length,
-        postCount: groupResponse.posts.length,
-        messageCount: groupResponse.chatMessages.length
+        id: group.id,
+        name: group.name,
+        memberCount: group.members?.length || 0,
+        postCount: group.posts?.length || 0,
+        messageCount: group.chatMessages?.length || 0
       });
 
-      res.json(groupResponse);
+      res.json(group);
     } catch (error) {
       console.error('Routes: Error in group fetch:', error);
       res.status(500).json({ 

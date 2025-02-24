@@ -88,8 +88,8 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Storage: Fetching group with ID:', id);
 
-      // Explicitly type the selection to match Group type
-      const result = await db
+      // Get the base group first
+      const groups = await db
         .select({
           id: groups.id,
           name: groups.name,
@@ -101,22 +101,50 @@ export class DatabaseStorage implements IStorage {
           createdAt: groups.createdAt,
         })
         .from(groups)
-        .where(eq(groups.id, id))
-        .limit(1);
+        .where(eq(groups.id, id));
 
-      console.log('Storage: Raw database result:', result);
-
-      if (!result || result.length === 0) {
+      if (!groups.length) {
         console.log('Storage: No group found with ID:', id);
         return undefined;
       }
 
-      const group = result[0];
-      console.log('Storage: Successfully found group:', group);
-      return group;
+      const group = groups[0];
+      console.log('Storage: Found base group:', group);
+
+      // Get all related data in parallel
+      const [groupPosts, groupMembers, groupChatMessages] = await Promise.all([
+        db
+          .select()
+          .from(posts)
+          .where(eq(posts.groupId, id))
+          .orderBy(desc(posts.createdAt)),
+        db
+          .select()
+          .from(groupMembers)
+          .where(eq(groupMembers.groupId, id))
+          .orderBy(asc(groupMembers.joinedAt)),
+        db
+          .select()
+          .from(groupChat)
+          .where(eq(groupChat.groupId, id))
+          .orderBy(asc(groupChat.createdAt))
+      ]);
+
+      console.log('Storage: Found related data:', {
+        postsCount: groupPosts.length,
+        membersCount: groupMembers.length,
+        chatCount: groupChatMessages.length
+      });
+
+      return {
+        ...group,
+        posts: groupPosts,
+        members: groupMembers,
+        chatMessages: groupChatMessages
+      };
     } catch (error) {
       console.error('Storage: Error in getGroupById:', error);
-      throw error; // Let the route handler deal with the error
+      throw error;
     }
   }
 
