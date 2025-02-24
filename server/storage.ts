@@ -95,7 +95,18 @@ export class DatabaseStorage implements IStorage {
 
       const [groupPostsData, groupMembersData, chatMessagesData] = await Promise.all([
         db
-          .select()
+          .select({
+            id: posts.id,
+            content: posts.content,
+            userId: posts.userId,
+            groupId: posts.groupId,
+            imageUrl: posts.imageUrl,
+            musicUrl: posts.musicUrl,
+            videoUrl: posts.videoUrl,
+            postType: posts.postType,
+            createdAt: posts.createdAt,
+            likeCount: posts.likeCount
+          })
           .from(posts)
           .where(eq(posts.groupId, id))
           .orderBy(desc(posts.createdAt)),
