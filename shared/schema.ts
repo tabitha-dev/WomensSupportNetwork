@@ -27,25 +27,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const friendships = pgTable("friendships", {
-  userId: integer("user_id").references(() => users.id),
-  friendId: integer("friend_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const friendRequests = pgTable("friend_requests", {
-  senderId: integer("sender_id").references(() => users.id),
-  receiverId: integer("receiver_id").references(() => users.id),
-  status: text("status").default("pending"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const followers = pgTable("followers", {
-  followerId: integer("follower_id").references(() => users.id),
-  followingId: integer("following_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 export const groups = pgTable("groups", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -69,6 +50,13 @@ export const posts = pgTable("posts", {
   likeCount: integer("like_count").default(0),
 });
 
+export const groupMembers = pgTable("group_members", {
+  groupId: integer("group_id").references(() => groups.id),
+  userId: integer("user_id").references(() => users.id),
+  role: text("role").default("member"),
+  joinedAt: timestamp("joined_at").defaultNow(),
+});
+
 export const groupChat = pgTable("group_chat", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").references(() => groups.id),
@@ -77,12 +65,25 @@ export const groupChat = pgTable("group_chat", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const groupMembers = pgTable("group_members", {
-  groupId: integer("group_id").references(() => groups.id),
+export const friendships = pgTable("friendships", {
   userId: integer("user_id").references(() => users.id),
-  role: text("role").default("member"),
-  joinedAt: timestamp("joined_at").defaultNow(),
+  friendId: integer("friend_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const friendRequests = pgTable("friend_requests", {
+  senderId: integer("sender_id").references(() => users.id),
+  receiverId: integer("receiver_id").references(() => users.id),
+  status: text("status").default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const followers = pgTable("followers", {
+  followerId: integer("follower_id").references(() => users.id),
+  followingId: integer("following_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
@@ -130,7 +131,6 @@ export const insertCommentSchema = createInsertSchema(comments);
 export const insertGroupChatSchema = createInsertSchema(groupChat);
 export const insertGroupMemberSchema = createInsertSchema(groupMembers);
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Group = typeof groups.$inferSelect;
 export type Post = typeof posts.$inferSelect;
@@ -139,9 +139,9 @@ export type GroupChat = typeof groupChat.$inferSelect;
 export type GroupMember = typeof groupMembers.$inferSelect;
 
 export type GroupWithRelations = Group & {
-  posts?: Post[];
-  members?: GroupMember[];
-  chatMessages?: GroupChat[];
+  posts: Post[];
+  members: GroupMember[];
+  chatMessages: GroupChat[];
 };
 
 export type { Group, Post, Comment, GroupChat, GroupMember };

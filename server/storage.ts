@@ -1,4 +1,4 @@
-import { users, groups, posts, userGroups, comments, likes, groupMembers, groupChat, type User, type InsertUser, type Group, type Post, type Comment, type GroupMember, type GroupChat } from "@shared/schema";
+import { users, groups, posts, userGroups, comments, likes, groupMembers, groupChat, type User, type InsertUser, type Group, type Post, type Comment, type GroupMember, type GroupChat, type GroupWithRelations } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
@@ -12,7 +12,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getGroups(): Promise<Group[]>;
-  getGroupById(id: number): Promise<Group | undefined>;
+  getGroupById(id: number): Promise<GroupWithRelations | undefined>;
   getGroupPosts(groupId: number): Promise<Post[]>;
   createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post>;
   updatePost(postId: number, userId: number, content: string): Promise<Post | undefined>;
@@ -84,34 +84,24 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(groups);
   }
 
-  async getGroupById(id: number): Promise<Group | undefined> {
+  async getGroupById(id: number): Promise<GroupWithRelations | undefined> {
     try {
       console.log('Storage: Fetching group with ID:', id);
 
-      // Get the base group first
-      const groups = await db
-        .select({
-          id: groups.id,
-          name: groups.name,
-          description: groups.description,
-          category: groups.category,
-          iconUrl: groups.iconUrl,
-          coverUrl: groups.coverUrl,
-          isPrivate: groups.isPrivate,
-          createdAt: groups.createdAt,
-        })
+      // Get the base group
+      const [group] = await db
+        .select()
         .from(groups)
         .where(eq(groups.id, id));
 
-      if (!groups.length) {
+      if (!group) {
         console.log('Storage: No group found with ID:', id);
         return undefined;
       }
 
-      const group = groups[0];
       console.log('Storage: Found base group:', group);
 
-      // Get all related data in parallel
+      // Get all related data in parallel for better performance
       const [groupPosts, groupMembers, groupChatMessages] = await Promise.all([
         db
           .select()
@@ -130,18 +120,21 @@ export class DatabaseStorage implements IStorage {
           .orderBy(asc(groupChat.createdAt))
       ]);
 
-      console.log('Storage: Found related data:', {
+      console.log('Storage: Related data fetched:', {
         postsCount: groupPosts.length,
         membersCount: groupMembers.length,
         chatCount: groupChatMessages.length
       });
 
-      return {
+      // Combine everything into a GroupWithRelations object
+      const groupWithRelations: GroupWithRelations = {
         ...group,
         posts: groupPosts,
         members: groupMembers,
         chatMessages: groupChatMessages
       };
+
+      return groupWithRelations;
     } catch (error) {
       console.error('Storage: Error in getGroupById:', error);
       throw error;

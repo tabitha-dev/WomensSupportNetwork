@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
-import { Group, Post, GroupMember, GroupChat, GroupWithRelations } from "@shared/schema";
+import { GroupWithRelations } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import PostComponent from "@/components/post";
 import { Button } from "@/components/ui/button";
