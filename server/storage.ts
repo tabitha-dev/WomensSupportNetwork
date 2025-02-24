@@ -152,6 +152,7 @@ export class DatabaseStorage implements IStorage {
         category: groups.category,
         createdAt: groups.createdAt,
         iconUrl: groups.iconUrl,
+        coverUrl: groups.coverUrl,
       })
       .from(userGroups)
       .innerJoin(groups, eq(userGroups.groupId, groups.id))

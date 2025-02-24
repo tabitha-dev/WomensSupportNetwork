@@ -27,18 +27,20 @@ export default function GroupPage() {
 
   const { data: group, isLoading: isLoadingGroup } = useQuery<Group>({
     queryKey: [`/api/groups/${groupId}`],
-    enabled: groupId > 0,
+    enabled: !!groupId && groupId > 0,
   });
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/groups/${groupId}/posts`],
-    enabled: groupId > 0,
+    enabled: !!groupId && groupId > 0,
   });
 
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {
-      const res = await apiRequest("POST", `/api/groups/${groupId}/posts`, data);
-      return res.json();
+      await apiRequest("POST", `/api/groups/${groupId}/posts`, {
+        content: data.content,
+        groupId: groupId,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/posts`] });
