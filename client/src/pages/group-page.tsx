@@ -21,6 +21,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
+// Define the complete group response type
 interface GroupResponse {
   id: number;
   name: string;
@@ -29,6 +30,7 @@ interface GroupResponse {
   iconUrl: string | null;
   coverUrl: string | null;
   isPrivate: boolean;
+  createdAt: string;
   posts: Post[];
   members: GroupMember[];
   chatMessages: GroupChat[];
@@ -68,7 +70,7 @@ export default function GroupPage() {
     enabled: !isNaN(groupId),
     retry: 1,
     onError: (error) => {
-      console.error("Failed to fetch group data:", error);
+      console.error("Failed to fetch group:", error);
       toast({
         title: "Error",
         description: "Failed to load group data. Please try again.",
@@ -76,10 +78,6 @@ export default function GroupPage() {
       });
     },
   });
-
-  console.log("Group data:", group); // Debug log
-  console.log("Group ID:", groupId); // Debug log
-  console.log("Query error:", error); // Debug log
 
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {
