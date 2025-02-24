@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import {
   Loader2,
@@ -90,6 +90,15 @@ export default function GroupPage() {
     },
   });
 
+  const joinGroupMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", `/api/groups/${groupId}/members`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/members`] });
+    },
+  });
+
   if (isLoadingGroup || isLoadingPosts || isLoadingMembers || isLoadingChat) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -113,6 +122,8 @@ export default function GroupPage() {
     );
   }
 
+  const isGroupMember = members.some(member => member.userId === user?.id);
+
   return (
     <div className="container mx-auto p-4 space-y-6">
       <motion.div
@@ -134,22 +145,32 @@ export default function GroupPage() {
             }
           />
           <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                {group.iconUrl ? (
-                  <img
-                    src={group.iconUrl}
-                    alt={group.name}
-                    className="w-8 h-8 rounded-full"
-                  />
-                ) : (
-                  <Users className="w-6 h-6 text-primary" />
-                )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  {group.iconUrl ? (
+                    <img
+                      src={group.iconUrl}
+                      alt={group.name}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <Users className="w-6 h-6 text-primary" />
+                  )}
+                </div>
+                <div>
+                  <CardTitle>{group.name}</CardTitle>
+                  <p className="text-muted-foreground mt-1">{group.category}</p>
+                </div>
               </div>
-              <div>
-                <CardTitle>{group.name}</CardTitle>
-                <p className="text-muted-foreground mt-1">{group.category}</p>
-              </div>
+              {!isGroupMember && (
+                <Button 
+                  onClick={() => joinGroupMutation.mutate()}
+                  disabled={joinGroupMutation.isPending}
+                >
+                  Join Group
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -157,157 +178,174 @@ export default function GroupPage() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="posts" className="mt-6">
-          <TabsList>
-            <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="chat">Group Chat</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-          </TabsList>
+        {isGroupMember ? (
+          <Tabs defaultValue="posts" className="mt-6">
+            <TabsList>
+              <TabsTrigger value="posts">Posts</TabsTrigger>
+              <TabsTrigger value="chat">Group Chat</TabsTrigger>
+              <TabsTrigger value="members">Members</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="posts" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Create Post</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form 
-                  onSubmit={postForm.handleSubmit((data) => createPostMutation.mutate(data))}
-                  className="space-y-4"
-                >
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant={postForm.watch("postType") === "text" ? "default" : "outline"}
-                      onClick={() => postForm.setValue("postType", "text")}
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={postForm.watch("postType") === "image" ? "default" : "outline"}
-                      onClick={() => postForm.setValue("postType", "image")}
-                    >
-                      <ImageIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={postForm.watch("postType") === "music" ? "default" : "outline"}
-                      onClick={() => postForm.setValue("postType", "music")}
-                    >
-                      <Music className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <Textarea
-                    placeholder="Share your thoughts with the group..."
-                    {...postForm.register("content")}
-                  />
-
-                  {(postForm.watch("postType") === "image" || postForm.watch("postType") === "music") && (
-                    <Input
-                      placeholder={`Enter ${postForm.watch("postType")} URL`}
-                      {...postForm.register("mediaUrl")}
-                    />
-                  )}
-
-                  <Button 
-                    type="submit"
-                    disabled={createPostMutation.isPending}
-                    className="flex items-center gap-2"
+            <TabsContent value="posts" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create Post</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form 
+                    onSubmit={postForm.handleSubmit((data) => createPostMutation.mutate(data))}
+                    className="space-y-4"
                   >
-                    <Send className="h-4 w-4" />
-                    Post
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={postForm.watch("postType") === "text" ? "default" : "outline"}
+                        onClick={() => postForm.setValue("postType", "text")}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={postForm.watch("postType") === "image" ? "default" : "outline"}
+                        onClick={() => postForm.setValue("postType", "image")}
+                      >
+                        <ImageIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={postForm.watch("postType") === "music" ? "default" : "outline"}
+                        onClick={() => postForm.setValue("postType", "music")}
+                      >
+                        <Music className="h-4 w-4" />
+                      </Button>
+                    </div>
 
-            <div className="space-y-4 mt-6">
-              {posts.map((post) => (
-                <PostComponent key={post.id} post={post} />
-              ))}
-              {posts.length === 0 && (
-                <Card>
-                  <CardContent className="p-8 text-center text-muted-foreground">
-                    No posts yet. Be the first to share something!
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
+                    <Textarea
+                      placeholder="Share your thoughts with the group..."
+                      {...postForm.register("content")}
+                    />
 
-          <TabsContent value="chat" className="mt-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="h-[400px] overflow-y-auto mb-4 space-y-4">
-                  {chatMessages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex items-start gap-2 ${
-                        message.userId === user?.id ? "flex-row-reverse" : ""
-                      }`}
+                    {(postForm.watch("postType") === "image" || postForm.watch("postType") === "music") && (
+                      <Input
+                        placeholder={`Enter ${postForm.watch("postType")} URL`}
+                        {...postForm.register("mediaUrl")}
+                      />
+                    )}
+
+                    <Button 
+                      type="submit"
+                      disabled={createPostMutation.isPending}
+                      className="flex items-center gap-2"
                     >
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          {message.userId === user?.id ? user.displayName.charAt(0) : "U"}
-                        </AvatarFallback>
-                      </Avatar>
+                      <Send className="h-4 w-4" />
+                      Post
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-4 mt-6">
+                {posts.map((post) => (
+                  <PostComponent key={post.id} post={post} />
+                ))}
+                {posts.length === 0 && (
+                  <Card>
+                    <CardContent className="p-8 text-center text-muted-foreground">
+                      No posts yet. Be the first to share something!
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="chat" className="mt-6">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="h-[400px] overflow-y-auto mb-4 space-y-4">
+                    {chatMessages.map((message) => (
                       <div
-                        className={`rounded-lg p-2 ${
-                          message.userId === user?.id
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
+                        key={message.id}
+                        className={`flex items-start gap-2 ${
+                          message.userId === user?.id ? "flex-row-reverse" : ""
                         }`}
                       >
-                        <p className="text-sm">{message.message}</p>
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {message.userId === user?.id ? user.displayName.charAt(0) : "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div
+                          className={`rounded-lg p-2 ${
+                            message.userId === user?.id
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <p className="text-sm">{message.message}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                <form
-                  onSubmit={chatForm.handleSubmit((data) =>
-                    sendChatMessageMutation.mutate(data)
-                  )}
-                  className="flex gap-2"
-                >
-                  <Input
-                    placeholder="Type a message..."
-                    {...chatForm.register("message")}
-                  />
-                  <Button
-                    type="submit"
-                    disabled={sendChatMessageMutation.isPending}
+                  <form
+                    onSubmit={chatForm.handleSubmit((data) =>
+                      sendChatMessageMutation.mutate(data)
+                    )}
+                    className="flex gap-2"
                   >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    <Input
+                      placeholder="Type a message..."
+                      {...chatForm.register("message")}
+                    />
+                    <Button
+                      type="submit"
+                      disabled={sendChatMessageMutation.isPending}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <TabsContent value="members" className="mt-6">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {members.map((member) => (
-                <Card key={member.userId}>
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <Avatar>
-                      <AvatarFallback>
-                        {member.role.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{member.role}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Joined {new Date(member.joinedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="members" className="mt-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {members.map((member) => (
+                  <Card key={member.userId}>
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <Avatar>
+                        <AvatarFallback>
+                          {member.role?.charAt(0).toUpperCase() ?? 'M'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{member.role || 'Member'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Joined {new Date(member.joinedAt!).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <Card className="mt-6">
+            <CardContent className="p-8 text-center">
+              <h3 className="text-lg font-semibold mb-2">Join this group to participate</h3>
+              <p className="text-muted-foreground mb-4">
+                Join this group to access posts, chat with members, and be part of the community.
+              </p>
+              <Button
+                onClick={() => joinGroupMutation.mutate()}
+                disabled={joinGroupMutation.isPending}
+              >
+                Join Group
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </motion.div>
     </div>
   );
