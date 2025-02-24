@@ -136,14 +136,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      let postType = req.body.postType;
+      let videoUrl = null;
+      let musicUrl = null;
+
+      // Handle YouTube URLs
+      if (postType === "video" && req.body.mediaUrl) {
+        // Extract video ID from various YouTube URL formats
+        const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+        const match = req.body.mediaUrl.match(youtubeRegex);
+        if (match && match[1]) {
+          videoUrl = `https://www.youtube.com/embed/${match[1]}`;
+        } else {
+          return res.status(400).json({ error: "Invalid YouTube URL" });
+        }
+      }
+
+      // Handle Spotify URLs
+      if (postType === "music" && req.body.mediaUrl) {
+        const spotifyRegex = /spotify:track:|open\.spotify\.com\/track\/([a-zA-Z0-9]+)/;
+        const match = req.body.mediaUrl.match(spotifyRegex);
+        if (match && match[1]) {
+          musicUrl = `https://open.spotify.com/embed/track/${match[1]}`;
+        } else {
+          return res.status(400).json({ error: "Invalid Spotify URL" });
+        }
+      }
+
       const post = await storage.createPost({
         content: req.body.content,
         userId: req.user!.id,
         groupId: parseInt(req.params.id),
-        postType: req.body.postType,
-        imageUrl: req.body.postType === "image" ? req.body.mediaUrl : null,
-        musicUrl: req.body.postType === "music" ? req.body.mediaUrl : null,
-        videoUrl: req.body.postType === "video" ? req.body.mediaUrl : null,
+        postType,
+        imageUrl: postType === "image" ? req.body.mediaUrl : null,
+        musicUrl,
+        videoUrl,
         likeCount: 0,
       });
 
@@ -151,6 +178,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating post:", error);
       res.status(500).json({ error: "Failed to create post" });
+    }
+  });
+
+  // Add delete post endpoint
+  app.delete("/api/posts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.id);
+      const deleted = await storage.deletePost(postId, req.user!.id);
+
+      if (!deleted) {
+        return res.status(404).json({ error: "Post not found or unauthorized" });
+      }
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      res.status(500).json({ error: "Failed to delete post" });
     }
   });
 

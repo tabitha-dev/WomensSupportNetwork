@@ -43,6 +43,7 @@ export interface IStorage {
   removeGroupMember(userId: number, groupId: number): Promise<void>;
   getGroupChat(groupId: number): Promise<GroupChat[]>;
   createChatMessage(userId: number, groupId: number, message: string): Promise<GroupChat>;
+  deletePost(postId: number, userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -270,8 +271,8 @@ export class DatabaseStorage implements IStorage {
 
       await tx
         .update(posts)
-        .set({ 
-          likeCount: sql`${posts.likeCount} + 1` 
+        .set({
+          likeCount: sql`${posts.likeCount} + 1`
         })
         .where(eq(posts.id, postId));
     });
@@ -290,8 +291,8 @@ export class DatabaseStorage implements IStorage {
 
       await tx
         .update(posts)
-        .set({ 
-          likeCount: sql`${posts.likeCount} - 1` 
+        .set({
+          likeCount: sql`${posts.likeCount} - 1`
         })
         .where(eq(posts.id, postId));
     });
@@ -347,9 +348,9 @@ export class DatabaseStorage implements IStorage {
       .where(eq(friendRequests.receiverId, userId))
       .innerJoin(users, eq(friendRequests.senderId, users.id));
 
-    return result.map((r) => ({ 
-      sender: r.sender, 
-      status: r.status || 'pending' 
+    return result.map((r) => ({
+      sender: r.sender,
+      status: r.status || 'pending'
     }));
   }
 
@@ -505,6 +506,25 @@ export class DatabaseStorage implements IStorage {
       .values({ userId, groupId, message })
       .returning();
     return chatMessage;
+  }
+
+  async deletePost(postId: number, userId: number): Promise<boolean> {
+    try {
+      const [deletedPost] = await db
+        .delete(posts)
+        .where(
+          and(
+            eq(posts.id, postId),
+            eq(posts.userId, userId)
+          )
+        )
+        .returning();
+
+      return !!deletedPost;
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      return false;
+    }
   }
 }
 
