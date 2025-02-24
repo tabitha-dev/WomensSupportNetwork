@@ -17,7 +17,7 @@ type PostFormData = {
 export default function GroupPage() {
   const { id } = useParams();
   const { user } = useAuth();
-  const groupId = parseInt(id);
+  const groupId = parseInt(id || "0");
 
   const form = useForm<PostFormData>({
     defaultValues: {
@@ -27,10 +27,12 @@ export default function GroupPage() {
 
   const { data: group, isLoading: isLoadingGroup } = useQuery<Group>({
     queryKey: [`/api/groups/${groupId}`],
+    enabled: groupId > 0,
   });
 
-  const { data: posts, isLoading: isLoadingPosts } = useQuery<Post[]>({
+  const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/groups/${groupId}/posts`],
+    enabled: groupId > 0,
   });
 
   const createPostMutation = useMutation({
@@ -43,6 +45,10 @@ export default function GroupPage() {
       form.reset();
     },
   });
+
+  if (!groupId || groupId <= 0) {
+    return <div>Invalid group ID</div>;
+  }
 
   if (isLoadingGroup || isLoadingPosts) {
     return (
@@ -91,10 +97,10 @@ export default function GroupPage() {
       </Card>
 
       <div className="space-y-4">
-        {posts?.map((post) => (
+        {posts.map((post) => (
           <PostComponent key={post.id} post={post} />
         ))}
-        {posts?.length === 0 && (
+        {posts.length === 0 && (
           <Card>
             <CardContent className="p-8 text-center text-muted-foreground">
               No posts yet. Be the first to share something!
