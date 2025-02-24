@@ -144,6 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl: req.body.postType === "image" ? req.body.mediaUrl : null,
         musicUrl: req.body.postType === "music" ? req.body.mediaUrl : null,
         likeCount: 0,
+        videoUrl: req.body.postType === "video" ? req.body.mediaUrl : null, //Added for youtube
       });
 
       res.status(201).json(post);
