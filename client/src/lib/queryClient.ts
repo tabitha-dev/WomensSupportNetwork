@@ -2,8 +2,14 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let errorMessage;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.message || res.statusText;
+    } catch {
+      errorMessage = res.statusText;
+    }
+    throw new Error(`${res.status}: ${errorMessage}`);
   }
 }
 
@@ -14,9 +20,11 @@ export async function apiRequest(
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: data ? { 
+      "Content-Type": "application/json",
+    } : {},
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: "include", // Always include credentials
   });
 
   await throwIfResNotOk(res);
@@ -30,7 +38,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
+      credentials: "include", // Always include credentials
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -46,9 +54,9 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      refetchOnWindowFocus: true, // Enable this to keep auth state in sync
+      staleTime: 30000, // 30 seconds
+      retry: 1,
     },
     mutations: {
       retry: false,
