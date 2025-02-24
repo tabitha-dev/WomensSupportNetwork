@@ -6,14 +6,14 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings, Image as ImageIcon } from "lucide-react";
+import { Loader2, Settings } from "lucide-react";
 import PostComponent from "@/components/post";
 import { motion } from "framer-motion";
 
 export default function ProfilePage() {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
-  const userId = parseInt(id);
+  const userId = parseInt(id!);
   const isOwnProfile = currentUser?.id === userId;
 
   const { data: user, isLoading: isLoadingUser } = useQuery<User>({

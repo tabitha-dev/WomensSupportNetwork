@@ -1,6 +1,6 @@
 import { users, groups, posts, userGroups, comments, likes, type User, type InsertUser, type Group, type Post, type Comment } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool } from "./db";
@@ -26,6 +26,7 @@ export interface IStorage {
   unlikePost(userId: number, postId: number): Promise<void>;
   isPostLikedByUser(userId: number, postId: number): Promise<boolean>;
   sessionStore: session.Store;
+  getUserPosts(userId: number): Promise<Post[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -193,6 +194,15 @@ export class DatabaseStorage implements IStorage {
       ));
 
     return !!like;
+  }
+  async getUserPosts(userId: number): Promise<Post[]> {
+    const userPosts = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.userId, userId))
+      .orderBy(desc(posts.createdAt));
+
+    return userPosts;
   }
 }
 

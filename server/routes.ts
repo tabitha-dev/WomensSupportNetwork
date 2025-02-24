@@ -142,6 +142,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(safeUser);
   });
 
+  app.get("/api/users/:id/posts", async (req, res) => {
+    const posts = await storage.getUserPosts(parseInt(req.params.id));
+    res.json(posts);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
