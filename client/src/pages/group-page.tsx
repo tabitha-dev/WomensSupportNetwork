@@ -63,11 +63,12 @@ export default function GroupPage() {
     },
   });
 
-  const { data: group, isLoading } = useQuery<GroupResponse>({
+  const { data: group, isLoading, error } = useQuery<GroupResponse>({
     queryKey: [`/api/groups/${groupId}`],
     enabled: !isNaN(groupId),
+    retry: 1,
     onError: (error) => {
-      console.error("Failed to fetch group:", error);
+      console.error("Failed to fetch group data:", error);
       toast({
         title: "Error",
         description: "Failed to load group data. Please try again.",
@@ -75,6 +76,10 @@ export default function GroupPage() {
       });
     },
   });
+
+  console.log("Group data:", group); // Debug log
+  console.log("Group ID:", groupId); // Debug log
+  console.log("Query error:", error); // Debug log
 
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {

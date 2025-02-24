@@ -20,27 +20,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const groupId = parseInt(req.params.id);
       if (isNaN(groupId)) {
+        console.error("Invalid group ID:", req.params.id);
         return res.status(400).json({ error: "Invalid group ID" });
       }
 
+      console.log("Fetching group with ID:", groupId); // Debug log
       const group = await storage.getGroupById(groupId);
+
       if (!group) {
+        console.error("Group not found:", groupId);
         return res.status(404).json({ error: "Group not found" });
       }
 
       // Get additional group data
+      console.log("Fetching additional group data"); // Debug log
       const [posts, members, chatMessages] = await Promise.all([
         storage.getGroupPosts(groupId),
         storage.getGroupMembers(groupId),
         storage.getGroupChat(groupId)
       ]);
 
-      res.json({
+      const groupResponse = {
         ...group,
         posts,
         members,
         chatMessages
-      });
+      };
+
+      console.log("Group response:", groupResponse); // Debug log
+      res.json(groupResponse);
     } catch (error) {
       console.error("Error fetching group:", error);
       res.status(500).json({ error: "Failed to fetch group" });
