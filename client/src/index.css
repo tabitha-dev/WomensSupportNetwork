@@ -18,10 +18,36 @@
   }
 
   .glass-card {
-    @apply bg-white/90 backdrop-blur-sm border border-white/20 shadow-xl;
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:bg-white/90;
   }
 
   .content-container {
-    @apply bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60;
+    @apply bg-background/95 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60;
   }
+
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-102;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent;
+  }
+
+  .animate-fade-in {
+    @apply opacity-0 animate-in fade-in duration-500;
+  }
+
+  .animate-slide-in {
+    @apply opacity-0 animate-in slide-in-from-bottom duration-500;
+  }
+}
+
+@keyframes scale {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.scale-animation {
+  animation: scale 0.3s ease-in-out;
 }
