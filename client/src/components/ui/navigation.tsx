@@ -8,15 +8,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { LogOut, User, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Navigation() {
   const { user, logoutMutation } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [, setLocation] = useLocation();
 
   if (!user) return null;
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+    setLocation("/auth");
+  };
 
   return (
     <motion.nav 
@@ -64,15 +70,16 @@ export default function Navigation() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 glass-card">
-              <DropdownMenuItem asChild className="py-2">
-                <Link href={`/users/${user.id}`} className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-primary" />
-                  <span className="font-medium">{user.displayName}</span>
-                </Link>
+              <DropdownMenuItem 
+                className="flex items-center gap-2 py-2 cursor-pointer"
+                onClick={() => setLocation(`/users/${user.id}`)}
+              >
+                <User className="h-4 w-4 text-primary" />
+                <span className="font-medium">{user.displayName}</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="flex items-center gap-2 text-destructive focus:text-destructive py-2"
-                onClick={() => logoutMutation.mutate()}
+                onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4" />
                 <span>Logout</span>
