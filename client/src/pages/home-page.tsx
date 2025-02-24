@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 
 export default function HomePage() {
   const { user } = useAuth();
-  
+
   const { data: allGroups, isLoading: isLoadingAll } = useQuery<Group[]>({
     queryKey: ["/api/groups"],
   });
@@ -35,17 +35,21 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto p-4 space-y-8">
-      <div className="flex items-center space-x-4">
-        <img 
-          src="https://cdn.pixabay.com/photo/2016/11/14/04/45/woman-1822726_1280.jpg"
-          alt="Welcome" 
-          className="w-16 h-16 rounded-full object-cover"
-        />
-        <div>
-          <h1 className="text-2xl font-bold">Welcome, {user?.displayName}</h1>
-          <p className="text-muted-foreground">Find your community and connect with others</p>
-        </div>
-      </div>
+      <Card className="bg-primary/5">
+        <CardContent className="p-6">
+          <h1 className="text-2xl font-bold mb-4">Welcome to Women's Support Network</h1>
+          <p className="text-lg leading-relaxed">
+            You've come to the right place if you are trying to restructure your life to become a happier version of yourself. 
+            Many of us do not have friends and family to turn to for support. This is a place where women can gather to support 
+            each other. We aim to help women build healthy habits and make new friends along the way.
+          </p>
+          <p className="mt-4 text-lg leading-relaxed">
+            Both listening and giving advice are encouraged. You can join any groups you're interested in and leave them at any time.
+            There will be no politics or religious views here, nor any selling of merchandise. This is a place for making friends 
+            and getting advice.
+          </p>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="all">
         <TabsList>
