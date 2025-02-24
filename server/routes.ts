@@ -113,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(group);
     } catch (error) {
       console.error('Routes: Error in group fetch:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to fetch group",
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -143,8 +143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         postType: req.body.postType,
         imageUrl: req.body.postType === "image" ? req.body.mediaUrl : null,
         musicUrl: req.body.postType === "music" ? req.body.mediaUrl : null,
+        videoUrl: req.body.postType === "video" ? req.body.mediaUrl : null,
         likeCount: 0,
-        videoUrl: req.body.postType === "video" ? req.body.mediaUrl : null, //Added for youtube
       });
 
       res.status(201).json(post);

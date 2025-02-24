@@ -66,6 +66,7 @@ export const posts = pgTable("posts", {
   groupId: integer("group_id").references(() => groups.id),
   imageUrl: text("image_url"),
   musicUrl: text("music_url"),
+  videoUrl: text("video_url"), // Added for YouTube videos
   postType: text("post_type").default("text"),
   createdAt: timestamp("created_at").defaultNow(),
   likeCount: integer("like_count").default(0),
