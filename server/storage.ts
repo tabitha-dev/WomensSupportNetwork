@@ -101,8 +101,8 @@ export class DatabaseStorage implements IStorage {
 
       console.log('Storage: Found base group:', group);
 
-      // Get all related data in parallel for better performance
-      const [groupPosts, groupMembers, groupChatMessages] = await Promise.all([
+      // Get all related data
+      const [groupPostsData, groupMembersData, chatMessagesData] = await Promise.all([
         db
           .select()
           .from(posts)
@@ -121,17 +121,17 @@ export class DatabaseStorage implements IStorage {
       ]);
 
       console.log('Storage: Related data fetched:', {
-        postsCount: groupPosts.length,
-        membersCount: groupMembers.length,
-        chatCount: groupChatMessages.length
+        postsCount: groupPostsData.length,
+        membersCount: groupMembersData.length,
+        chatCount: chatMessagesData.length
       });
 
       // Combine everything into a GroupWithRelations object
       const groupWithRelations: GroupWithRelations = {
         ...group,
-        posts: groupPosts,
-        members: groupMembers,
-        chatMessages: groupChatMessages
+        posts: groupPostsData,
+        members: groupMembersData,
+        chatMessages: chatMessagesData
       };
 
       return groupWithRelations;

@@ -54,20 +54,9 @@ export default function GroupPage() {
     queryKey: [`/api/groups/${groupId}`],
     enabled: !isNaN(groupId),
     retry: 3,
-    onSuccess: (data) => {
-      console.log('Frontend: Successfully fetched group data:', data);
-    },
-    onError: (error) => {
-      console.error('Frontend: Failed to fetch group:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load group data. Please try again.",
-        variant: "destructive",
-      });
-    },
   });
 
-  // Add debug logging for render states
+  // Debug logging
   console.log('Frontend: Current group page state:', {
     groupId,
     isLoading,

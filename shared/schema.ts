@@ -84,7 +84,6 @@ export const followers = pgTable("followers", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
@@ -104,6 +103,7 @@ export const userGroups = pgTable("user_groups", {
   groupId: integer("group_id").references(() => groups.id),
 });
 
+// Schema for insert operations
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -125,13 +125,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
   fontFamily: true,
 });
 
-export const insertGroupSchema = createInsertSchema(groups);
-export const insertPostSchema = createInsertSchema(posts);
-export const insertCommentSchema = createInsertSchema(comments);
-export const insertGroupChatSchema = createInsertSchema(groupChat);
-export const insertGroupMemberSchema = createInsertSchema(groupMembers);
-
+// Types
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Group = typeof groups.$inferSelect;
 export type Post = typeof posts.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
@@ -143,5 +139,3 @@ export type GroupWithRelations = Group & {
   members: GroupMember[];
   chatMessages: GroupChat[];
 };
-
-export type { Group, Post, Comment, GroupChat, GroupMember };
