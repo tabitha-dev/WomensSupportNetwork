@@ -93,12 +93,11 @@ export class DatabaseStorage implements IStorage {
         category: groups.category,
         iconUrl: groups.iconUrl,
         coverUrl: groups.coverUrl,
+        isPrivate: groups.isPrivate,
         createdAt: groups.createdAt,
       })
       .from(groups)
-      .where(eq(groups.id, id))
-      .innerJoin(userGroups, eq(groups.id, userGroups.groupId))
-      .leftJoin(posts, eq(groups.id, posts.groupId));
+      .where(eq(groups.id, id));
 
     return group;
   }
