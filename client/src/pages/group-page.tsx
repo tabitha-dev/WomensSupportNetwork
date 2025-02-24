@@ -39,7 +39,6 @@ export default function GroupPage() {
     mutationFn: async (data: PostFormData) => {
       await apiRequest("POST", `/api/groups/${groupId}/posts`, {
         content: data.content,
-        groupId: groupId,
       });
     },
     onSuccess: () => {

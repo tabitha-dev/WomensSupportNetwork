@@ -33,10 +33,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       content: req.body.content,
       userId: req.user!.id,
       groupId: parseInt(req.params.id),
+      imageUrl: null,
       likeCount: 0,
     });
 
     res.status(201).json(post);
+  });
+
+  app.get("/api/user/groups", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const groups = await storage.getUserGroups(req.user!.id);
+    res.json(groups);
+  });
+
+  app.post("/api/groups/:id/join", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    await storage.joinGroup(req.user!.id, parseInt(req.params.id));
+    res.sendStatus(200);
+  });
+
+  app.post("/api/groups/:id/leave", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    await storage.leaveGroup(req.user!.id, parseInt(req.params.id));
+    res.sendStatus(200);
   });
 
   app.patch("/api/posts/:id", async (req, res) => {
@@ -54,7 +82,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(post);
   });
 
-  // New routes for social features
   app.get("/api/posts/:id/comments", async (req, res) => {
     const comments = await storage.getPostComments(parseInt(req.params.id));
     res.json(comments);
@@ -104,32 +131,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(isLiked);
   });
 
-  app.post("/api/groups/:id/join", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    await storage.joinGroup(req.user!.id, parseInt(req.params.id));
-    res.sendStatus(200);
-  });
-
-  app.post("/api/groups/:id/leave", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    await storage.leaveGroup(req.user!.id, parseInt(req.params.id));
-    res.sendStatus(200);
-  });
-
-  app.get("/api/user/groups", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const groups = await storage.getUserGroups(req.user!.id);
-    res.json(groups);
-  });
 
   app.get("/api/users/:id", async (req, res) => {
     const user = await storage.getUser(parseInt(req.params.id));
@@ -147,7 +148,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(posts);
   });
 
-  // Friend system routes
   app.get("/api/users/:id/friends", async (req, res) => {
     const friends = await storage.getFriends(parseInt(req.params.id));
     res.json(friends);
@@ -177,7 +177,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(200);
   });
 
-  // Follow system routes
   app.get("/api/users/:id/followers", async (req, res) => {
     const followers = await storage.getFollowers(parseInt(req.params.id));
     res.json(followers);
@@ -228,7 +227,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { password, ...safeUser } = user;
     res.json(safeUser);
   });
-
 
   const httpServer = createServer(app);
   return httpServer;
