@@ -34,38 +34,42 @@ export default function HomePage() {
   }, {} as Record<string, Group[]>);
 
   return (
-    <div className="container mx-auto p-4 space-y-8">
-      <Card className="bg-primary/5">
-        <CardContent className="p-6">
-          <h1 className="text-2xl font-bold mb-4">Welcome to Women's Support Network</h1>
-          <p className="text-lg leading-relaxed">
-            You've come to the right place if you are trying to restructure your life to become a happier version of yourself. 
-            Many of us do not have friends and family to turn to for support. This is a place where women can gather to support 
-            each other. We aim to help women build healthy habits and make new friends along the way.
-          </p>
-          <p className="mt-4 text-lg leading-relaxed">
-            Both listening and giving advice are encouraged. You can join any groups you're interested in and leave them at any time.
-            There will be no politics or religious views here, nor any selling of merchandise. This is a place for making friends 
-            and getting advice.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto p-4 space-y-8">
+        <Card className="glass-card border-none">
+          <CardContent className="p-8">
+            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent">
+              Welcome to Women's Support Network
+            </h1>
+            <p className="text-lg leading-relaxed opacity-90">
+              You've come to the right place if you are trying to restructure your life to become a happier version of yourself. 
+              Many of us do not have friends and family to turn to for support. This is a place where women can gather to support 
+              each other. We aim to help women build healthy habits and make new friends along the way.
+            </p>
+            <p className="mt-4 text-lg leading-relaxed opacity-90">
+              Both listening and giving advice are encouraged. You can join any groups you're interested in and leave them at any time.
+              There will be no politics or religious views here, nor any selling of merchandise. This is a place for making friends 
+              and getting advice.
+            </p>
+          </CardContent>
+        </Card>
 
-      <Tabs defaultValue="all">
-        <TabsList>
-          <TabsTrigger value="all">All Groups</TabsTrigger>
-          <TabsTrigger value="joined">My Groups</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="w-full justify-start border-b rounded-none p-0 h-12">
+            <TabsTrigger value="all" className="data-[state=active]:border-b-2 border-primary rounded-none">
+              All Groups
+            </TabsTrigger>
+            <TabsTrigger value="joined" className="data-[state=active]:border-b-2 border-primary rounded-none">
+              My Groups
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="all">
-          <div className="grid gap-6">
-            {groupsByCategory && Object.entries(groupsByCategory).map(([category, groups]) => (
-              <Card key={category}>
-                <CardHeader>
-                  <CardTitle>{category}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <TabsContent value="all" className="mt-6">
+            <div className="grid gap-8">
+              {groupsByCategory && Object.entries(groupsByCategory).map(([category, groups]) => (
+                <div key={category} className="space-y-4">
+                  <h2 className="text-2xl font-semibold text-foreground/90">{category}</h2>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {groups.map((group) => (
                       <GroupCard 
                         key={group.id} 
@@ -74,32 +78,32 @@ export default function HomePage() {
                       />
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="joined">
-          {userGroups?.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
-                You haven't joined any groups yet. Explore our communities to get started!
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {userGroups?.map((group) => (
-                <GroupCard 
-                  key={group.id} 
-                  group={group}
-                  isJoined={true}
-                />
+                </div>
               ))}
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+
+          <TabsContent value="joined" className="mt-6">
+            {userGroups?.length === 0 ? (
+              <Card className="glass-card border-none">
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  You haven't joined any groups yet. Explore our communities to get started!
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {userGroups?.map((group) => (
+                  <GroupCard 
+                    key={group.id} 
+                    group={group}
+                    isJoined={true}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
