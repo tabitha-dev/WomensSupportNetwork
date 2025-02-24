@@ -88,7 +88,8 @@ export class DatabaseStorage implements IStorage {
     const [group] = await db
       .select()
       .from(groups)
-      .where(eq(groups.id, id));
+      .where(eq(groups.id, id))
+      .limit(1);
 
     return group;
   }
