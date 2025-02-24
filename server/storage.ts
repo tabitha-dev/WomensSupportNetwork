@@ -87,13 +87,24 @@ export class DatabaseStorage implements IStorage {
         createdAt: groups.createdAt,
       })
       .from(groups)
-      .where(eq(groups.id, id));
+      .where(eq(groups.id, id))
+      .innerJoin(userGroups, eq(groups.id, userGroups.groupId))
+      .leftJoin(posts, eq(groups.id, posts.groupId));
+
     return group;
   }
 
   async getGroupPosts(groupId: number): Promise<Post[]> {
     return await db
-      .select()
+      .select({
+        id: posts.id,
+        content: posts.content,
+        userId: posts.userId,
+        groupId: posts.groupId,
+        imageUrl: posts.imageUrl,
+        createdAt: posts.createdAt,
+        likeCount: posts.likeCount,
+      })
       .from(posts)
       .where(eq(posts.groupId, groupId))
       .orderBy(desc(posts.createdAt));

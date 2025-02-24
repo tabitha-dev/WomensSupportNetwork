@@ -28,12 +28,12 @@ export default function GroupPage() {
 
   const { data: group, isLoading: isLoadingGroup } = useQuery<Group>({
     queryKey: [`/api/groups/${groupId}`],
-    enabled: !!groupId,
+    enabled: !!id,
   });
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/groups/${groupId}/posts`],
-    enabled: !!groupId,
+    enabled: !!id && !!group,
   });
 
   const createPostMutation = useMutation({
@@ -78,11 +78,31 @@ export default function GroupPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className="glass-card">
+        <Card className="glass-card overflow-hidden">
+          <div 
+            className="h-48 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20"
+            style={
+              group.coverUrl
+                ? {
+                    backgroundImage: `url(${group.coverUrl})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }
+                : {}
+            }
+          />
           <CardHeader>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary" />
+                {group.iconUrl ? (
+                  <img
+                    src={group.iconUrl}
+                    alt={group.name}
+                    className="w-8 h-8 rounded-full"
+                  />
+                ) : (
+                  <Users className="w-6 h-6 text-primary" />
+                )}
               </div>
               <div>
                 <CardTitle>{group.name}</CardTitle>
