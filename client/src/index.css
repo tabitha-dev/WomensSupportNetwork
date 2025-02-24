@@ -26,6 +26,28 @@
     --radius: 0.75rem;
   }
 
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 255 95% 65%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 255 95% 65%;
+  }
+
   * {
     @apply border-border;
   }
@@ -35,13 +57,13 @@
   }
 
   .glass-card {
-    @apply bg-white/90 backdrop-blur-sm border border-white/10 
+    @apply bg-background/90 backdrop-blur-sm border border-border/50
            shadow-lg hover:shadow-xl transition-all duration-300 
            hover:translate-y-[-2px];
   }
 
   .nav-glass {
-    @apply bg-white/80 backdrop-blur-sm border-b border-white/10 
+    @apply bg-background/80 backdrop-blur-sm border-b border-border/50
            shadow-sm;
   }
 
@@ -61,16 +83,6 @@
   100% { transform: scale(1); }
 }
 
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-
 .scale-animation {
   animation: scale 0.3s ease-in-out;
-}
-
-.float-animation {
-  animation: float 3s ease-in-out infinite;
 }
