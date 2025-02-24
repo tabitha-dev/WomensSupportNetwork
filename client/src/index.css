@@ -3,11 +3,25 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --gradient-start: #40E0D0;
+    --gradient-middle: #5A32FA;
+    --gradient-end: #7D2AE8;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-gradient-to-br from-[var(--gradient-start)] via-[var(--gradient-middle)] to-[var(--gradient-end)] min-h-screen;
+  }
+
+  .glass-card {
+    @apply bg-white/90 backdrop-blur-sm border border-white/20 shadow-xl;
+  }
+
+  .content-container {
+    @apply bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60;
   }
 }

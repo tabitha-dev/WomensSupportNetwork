@@ -18,6 +18,7 @@ export interface IStorage {
   joinGroup(userId: number, groupId: number): Promise<void>;
   leaveGroup(userId: number, groupId: number): Promise<void>;
   getUserGroups(userId: number): Promise<Group[]>;
+  updatePost(postId: number, userId: number, content: string): Promise<Post | undefined>;
   sessionStore: session.Store;
 }
 
@@ -105,6 +106,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userGroups.userId, userId));
 
     return result;
+  }
+
+  async updatePost(postId: number, userId: number, content: string): Promise<Post | undefined> {
+    const [post] = await db
+      .update(posts)
+      .set({ content })
+      .where(and(
+        eq(posts.id, postId),
+        eq(posts.userId, userId)
+      ))
+      .returning();
+    return post;
   }
 }
 

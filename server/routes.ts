@@ -38,6 +38,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(201).json(post);
   });
 
+  app.patch("/api/posts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const postId = parseInt(req.params.id);
+    const post = await storage.updatePost(postId, req.user!.id, req.body.content);
+
+    if (!post) {
+      return res.status(404).send("Post not found or unauthorized");
+    }
+
+    res.json(post);
+  });
+
   app.post("/api/groups/:id/join", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).send("Not authenticated");
