@@ -327,6 +327,12 @@ export default function ProfilePage() {
               >
                 Groups
               </TabsTrigger>
+              <TabsTrigger
+                value="profile"
+                className="data-[state=active]:border-b-2 border-primary rounded-none"
+              >
+                Profile
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="posts" className="mt-6">
@@ -423,6 +429,146 @@ export default function ProfilePage() {
                   </Card>
                 )}
               </div>
+            </TabsContent>
+
+            <TabsContent value="profile" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Theme Customization</h3>
+                      <div className="grid gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Background Color</label>
+                          <Input
+                            type="color"
+                            value={user.backgroundColor || "#ffffff"}
+                            onChange={(e) =>
+                              updateProfileMutation.mutate({
+                                backgroundColor: e.target.value,
+                              })
+                            }
+                            className="h-10 w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Text Color</label>
+                          <Input
+                            type="color"
+                            value={user.textColor || "#000000"}
+                            onChange={(e) =>
+                              updateProfileMutation.mutate({
+                                textColor: e.target.value,
+                              })
+                            }
+                            className="h-10 w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Accent Color</label>
+                          <Input
+                            type="color"
+                            value={user.accentColor || "hsl(var(--primary))"}
+                            onChange={(e) =>
+                              updateProfileMutation.mutate({
+                                accentColor: e.target.value,
+                              })
+                            }
+                            className="h-10 w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Font Settings</h3>
+                      <div className="grid gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Font Family</label>
+                          <select
+                            className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md"
+                            value={user.fontFamily || ""}
+                            onChange={(e) =>
+                              updateProfileMutation.mutate({
+                                fontFamily: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="">Default</option>
+                            <option value="Arial">Arial</option>
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Verdana">Verdana</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Profile Information</h3>
+                      <div className="grid gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Display Name</label>
+                          <Input
+                            value={user.displayName}
+                            onChange={(e) =>
+                              updateProfileMutation.mutate({
+                                displayName: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Bio</label>
+                          <Textarea
+                            value={user.bio || ""}
+                            onChange={(e) =>
+                              updateProfileMutation.mutate({
+                                bio: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Location</label>
+                          <Input
+                            value={user.location || ""}
+                            onChange={(e) =>
+                              updateProfileMutation.mutate({
+                                location: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Occupation</label>
+                          <Input
+                            value={user.occupation || ""}
+                            onChange={(e) =>
+                              updateProfileMutation.mutate({
+                                occupation: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Favorite Quote</label>
+                          <Input
+                            value={user.favoriteQuote || ""}
+                            onChange={(e) =>
+                              updateProfileMutation.mutate({
+                                favoriteQuote: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </motion.div>
