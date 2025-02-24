@@ -7,24 +7,15 @@ import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import EmojiPicker from 'emoji-picker-react';
 import { 
-  Smile, 
-  Edit2, 
-  Check, 
-  X, 
   Heart, 
   MessageCircle,
   Send,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Music
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { motion } from "framer-motion";
 
 type PostProps = {
@@ -35,7 +26,6 @@ export default function PostComponent({ post }: PostProps) {
   const { user: currentUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(post.content);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState("");
 
@@ -82,19 +72,6 @@ export default function PostComponent({ post }: PostProps) {
     },
   });
 
-  const onEmojiClick = (emoji: any) => {
-    const newContent = isEditing 
-      ? editedContent + emoji.emoji
-      : post.content + emoji.emoji;
-
-    if (isEditing) {
-      setEditedContent(newContent);
-    } else {
-      updatePostMutation.mutate(newContent);
-    }
-    setShowEmojiPicker(false);
-  };
-
   const canEdit = currentUser?.id === post.userId;
 
   return (
@@ -103,11 +80,11 @@ export default function PostComponent({ post }: PostProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="glass-card overflow-hidden">
+      <Card className="overflow-hidden">
         <CardHeader className="space-y-0 pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8 bg-primary/10">
+              <Avatar className="h-8 w-8">
                 <AvatarFallback>
                   {author?.displayName.charAt(0).toUpperCase()}
                 </AvatarFallback>
@@ -121,7 +98,7 @@ export default function PostComponent({ post }: PostProps) {
             </div>
             {canEdit && !isEditing && (
               <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit2 className="h-4 w-4" />
+                {/*<Edit2 className="h-4 w-4" />*/}
               </Button>
             )}
           </div>
@@ -140,7 +117,6 @@ export default function PostComponent({ post }: PostProps) {
                   onClick={() => updatePostMutation.mutate(editedContent)}
                   disabled={updatePostMutation.isPending}
                 >
-                  <Check className="h-4 w-4 mr-1" />
                   Save
                 </Button>
                 <Button
@@ -151,26 +127,17 @@ export default function PostComponent({ post }: PostProps) {
                     setEditedContent(post.content);
                   }}
                 >
-                  <X className="h-4 w-4 mr-1" />
                   Cancel
                 </Button>
-                <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-                  <PopoverTrigger asChild>
-                    <Button size="sm" variant="outline">
-                      <Smile className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0">
-                    <EmojiPicker onEmojiClick={onEmojiClick} />
-                  </PopoverContent>
-                </Popover>
               </div>
             </div>
           ) : (
-            <div className="relative">
-              <p className="whitespace-pre-wrap pb-4">{post.content}</p>
-              {post.imageUrl && (
-                <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
+            <div>
+              <p className="whitespace-pre-wrap">{post.content}</p>
+
+              {/* Handle image posts */}
+              {post.postType === "image" && post.imageUrl && (
+                <div className="mt-4 relative aspect-video rounded-lg overflow-hidden">
                   <img 
                     src={post.imageUrl} 
                     alt="Post attachment" 
@@ -178,7 +145,18 @@ export default function PostComponent({ post }: PostProps) {
                   />
                 </div>
               )}
-              <div className="flex items-center gap-4 pt-2 border-t">
+
+              {/* Handle music posts */}
+              {post.postType === "music" && post.musicUrl && (
+                <div className="mt-4">
+                  <audio controls className="w-full">
+                    <source src={post.musicUrl} type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
+              )}
+
+              <div className="flex items-center gap-4 mt-4 pt-2 border-t">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -197,16 +175,6 @@ export default function PostComponent({ post }: PostProps) {
                   <MessageCircle className="h-4 w-4 mr-1" />
                   {comments.length}
                 </Button>
-                <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-                  <PopoverTrigger asChild>
-                    <Button size="sm" variant="ghost" className="hover-scale">
-                      <Smile className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0">
-                    <EmojiPicker onEmojiClick={onEmojiClick} />
-                  </PopoverContent>
-                </Popover>
               </div>
             </div>
           )}
@@ -229,7 +197,6 @@ export default function PostComponent({ post }: PostProps) {
                   size="icon"
                   onClick={() => commentMutation.mutate(newComment)}
                   disabled={!newComment.trim() || commentMutation.isPending}
-                  className="hover-scale"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
