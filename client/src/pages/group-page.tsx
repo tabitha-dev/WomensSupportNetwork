@@ -1,18 +1,34 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
-import { Group, Post } from "@shared/schema";
+import { Group, Post, GroupMember, GroupChat } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import PostComponent from "@/components/post";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Send, Users } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import {
+  Loader2,
+  Send,
+  Users,
+  Image as ImageIcon,
+  Music,
+  MessageSquare,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 
 type PostFormData = {
   content: string;
+  postType: "text" | "image" | "music";
+  mediaUrl?: string;
+};
+
+type ChatFormData = {
+  message: string;
 };
 
 export default function GroupPage() {
@@ -20,9 +36,16 @@ export default function GroupPage() {
   const { user } = useAuth();
   const groupId = parseInt(id!);
 
-  const form = useForm<PostFormData>({
+  const postForm = useForm<PostFormData>({
     defaultValues: {
       content: "",
+      postType: "text",
+    },
+  });
+
+  const chatForm = useForm<ChatFormData>({
+    defaultValues: {
+      message: "",
     },
   });
 
@@ -33,22 +56,41 @@ export default function GroupPage() {
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/groups/${groupId}/posts`],
-    enabled: !!id && !!group,
+    enabled: !!id,
+  });
+
+  const { data: members = [], isLoading: isLoadingMembers } = useQuery<GroupMember[]>({
+    queryKey: [`/api/groups/${groupId}/members`],
+    enabled: !!id,
+  });
+
+  const { data: chatMessages = [], isLoading: isLoadingChat } = useQuery<GroupChat[]>({
+    queryKey: [`/api/groups/${groupId}/chat`],
+    enabled: !!id,
+    refetchInterval: 5000, // Poll every 5 seconds
   });
 
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {
-      await apiRequest("POST", `/api/groups/${groupId}/posts`, {
-        content: data.content,
-      });
+      await apiRequest("POST", `/api/groups/${groupId}/posts`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/posts`] });
-      form.reset();
+      postForm.reset();
     },
   });
 
-  if (isLoadingGroup || isLoadingPosts) {
+  const sendChatMessageMutation = useMutation({
+    mutationFn: async (data: ChatFormData) => {
+      await apiRequest("POST", `/api/groups/${groupId}/chat`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/chat`] });
+      chatForm.reset();
+    },
+  });
+
+  if (isLoadingGroup || isLoadingPosts || isLoadingMembers || isLoadingChat) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -115,43 +157,157 @@ export default function GroupPage() {
           </CardContent>
         </Card>
 
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Create Post</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form 
-              onSubmit={form.handleSubmit((data) => createPostMutation.mutate(data))}
-              className="space-y-4"
-            >
-              <Textarea
-                placeholder="Share your thoughts with the group..."
-                {...form.register("content")}
-              />
-              <Button 
-                type="submit"
-                disabled={createPostMutation.isPending}
-                className="flex items-center gap-2"
-              >
-                <Send className="h-4 w-4" />
-                Post
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="posts" className="mt-6">
+          <TabsList>
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="chat">Group Chat</TabsTrigger>
+            <TabsTrigger value="members">Members</TabsTrigger>
+          </TabsList>
 
-        <div className="space-y-4 mt-6">
-          {posts.map((post) => (
-            <PostComponent key={post.id} post={post} />
-          ))}
-          {posts.length === 0 && (
+          <TabsContent value="posts" className="mt-6">
             <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
-                No posts yet. Be the first to share something!
+              <CardHeader>
+                <CardTitle>Create Post</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form 
+                  onSubmit={postForm.handleSubmit((data) => createPostMutation.mutate(data))}
+                  className="space-y-4"
+                >
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={postForm.watch("postType") === "text" ? "default" : "outline"}
+                      onClick={() => postForm.setValue("postType", "text")}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={postForm.watch("postType") === "image" ? "default" : "outline"}
+                      onClick={() => postForm.setValue("postType", "image")}
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={postForm.watch("postType") === "music" ? "default" : "outline"}
+                      onClick={() => postForm.setValue("postType", "music")}
+                    >
+                      <Music className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <Textarea
+                    placeholder="Share your thoughts with the group..."
+                    {...postForm.register("content")}
+                  />
+
+                  {(postForm.watch("postType") === "image" || postForm.watch("postType") === "music") && (
+                    <Input
+                      placeholder={`Enter ${postForm.watch("postType")} URL`}
+                      {...postForm.register("mediaUrl")}
+                    />
+                  )}
+
+                  <Button 
+                    type="submit"
+                    disabled={createPostMutation.isPending}
+                    className="flex items-center gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    Post
+                  </Button>
+                </form>
               </CardContent>
             </Card>
-          )}
-        </div>
+
+            <div className="space-y-4 mt-6">
+              {posts.map((post) => (
+                <PostComponent key={post.id} post={post} />
+              ))}
+              {posts.length === 0 && (
+                <Card>
+                  <CardContent className="p-8 text-center text-muted-foreground">
+                    No posts yet. Be the first to share something!
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="chat" className="mt-6">
+            <Card>
+              <CardContent className="p-4">
+                <div className="h-[400px] overflow-y-auto mb-4 space-y-4">
+                  {chatMessages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex items-start gap-2 ${
+                        message.userId === user?.id ? "flex-row-reverse" : ""
+                      }`}
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>
+                          {message.userId === user?.id ? user.displayName.charAt(0) : "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div
+                        className={`rounded-lg p-2 ${
+                          message.userId === user?.id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                      >
+                        <p className="text-sm">{message.message}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <form
+                  onSubmit={chatForm.handleSubmit((data) =>
+                    sendChatMessageMutation.mutate(data)
+                  )}
+                  className="flex gap-2"
+                >
+                  <Input
+                    placeholder="Type a message..."
+                    {...chatForm.register("message")}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={sendChatMessageMutation.isPending}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="members" className="mt-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {members.map((member) => (
+                <Card key={member.userId}>
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <Avatar>
+                      <AvatarFallback>
+                        {member.role.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{member.role}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Joined {new Date(member.joinedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </motion.div>
     </div>
   );

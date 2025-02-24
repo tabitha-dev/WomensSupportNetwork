@@ -36,7 +36,7 @@ export const friendships = pgTable("friendships", {
 export const friendRequests = pgTable("friend_requests", {
   senderId: integer("sender_id").references(() => users.id),
   receiverId: integer("receiver_id").references(() => users.id),
-  status: text("status").default("pending"), 
+  status: text("status").default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -53,6 +53,7 @@ export const groups = pgTable("groups", {
   category: text("category").notNull(),
   iconUrl: text("icon_url"),
   coverUrl: text("cover_url"),
+  isPrivate: boolean("is_private").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -62,8 +63,25 @@ export const posts = pgTable("posts", {
   userId: integer("user_id").references(() => users.id),
   groupId: integer("group_id").references(() => groups.id),
   imageUrl: text("image_url"),
+  musicUrl: text("music_url"),
+  postType: text("post_type").default("text"),
   createdAt: timestamp("created_at").defaultNow(),
   likeCount: integer("like_count").default(0),
+});
+
+export const groupChat = pgTable("group_chat", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").references(() => groups.id),
+  userId: integer("user_id").references(() => users.id),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const groupMembers = pgTable("group_members", {
+  groupId: integer("group_id").references(() => groups.id),
+  userId: integer("user_id").references(() => users.id),
+  role: text("role").default("member"),
+  joinedAt: timestamp("joined_at").defaultNow(),
 });
 
 export const comments = pgTable("comments", {
@@ -109,9 +127,13 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertGroupSchema = createInsertSchema(groups);
 export const insertPostSchema = createInsertSchema(posts);
 export const insertCommentSchema = createInsertSchema(comments);
+export const insertGroupChatSchema = createInsertSchema(groupChat);
+export const insertGroupMemberSchema = createInsertSchema(groupMembers);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Group = typeof groups.$inferSelect;
 export type Post = typeof posts.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
+export type GroupChat = typeof groupChat.$inferSelect;
+export type GroupMember = typeof groupMembers.$inferSelect;

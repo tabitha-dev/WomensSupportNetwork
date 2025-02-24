@@ -1,6 +1,6 @@
-import { users, groups, posts, userGroups, comments, likes, type User, type InsertUser, type Group, type Post, type Comment } from "@shared/schema";
+import { users, groups, posts, userGroups, comments, likes, type User, type InsertUser, type Group, type Post, type Comment, type GroupMember, type GroupChat } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool } from "./db";
@@ -41,6 +41,15 @@ export interface IStorage {
   followUser(followerId: number, followingId: number): Promise<void>;
   unfollowUser(followerId: number, followingId: number): Promise<void>;
   isFollowing(followerId: number, followingId: number): Promise<boolean>;
+
+  // Group member methods
+  getGroupMembers(groupId: number): Promise<GroupMember[]>;
+  addGroupMember(userId: number, groupId: number, role?: string): Promise<void>;
+  removeGroupMember(userId: number, groupId: number): Promise<void>;
+
+  // Group chat methods
+  getGroupChat(groupId: number): Promise<GroupChat[]>;
+  createChatMessage(userId: number, groupId: number, message: string): Promise<GroupChat>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -117,7 +126,9 @@ export class DatabaseStorage implements IStorage {
         content: post.content,
         userId: post.userId,
         groupId: post.groupId,
+        postType: post.postType || "text",
         imageUrl: post.imageUrl || null,
+        musicUrl: post.musicUrl || null,
         likeCount: 0,
       })
       .returning();
@@ -373,6 +384,51 @@ export class DatabaseStorage implements IStorage {
       );
 
     return !!follow;
+  }
+
+  async getGroupMembers(groupId: number): Promise<GroupMember[]> {
+    return await db
+      .select()
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, groupId));
+  }
+
+  async addGroupMember(userId: number, groupId: number, role: string = "member"): Promise<void> {
+    await db
+      .insert(groupMembers)
+      .values({ userId, groupId, role })
+      .onConflictDoNothing();
+  }
+
+  async removeGroupMember(userId: number, groupId: number): Promise<void> {
+    await db
+      .delete(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.userId, userId),
+          eq(groupMembers.groupId, groupId)
+        )
+      );
+  }
+
+  async getGroupChat(groupId: number): Promise<GroupChat[]> {
+    return await db
+      .select()
+      .from(groupChat)
+      .where(eq(groupChat.groupId, groupId))
+      .orderBy(asc(groupChat.createdAt));
+  }
+
+  async createChatMessage(
+    userId: number,
+    groupId: number,
+    message: string
+  ): Promise<GroupChat> {
+    const [chatMessage] = await db
+      .insert(groupChat)
+      .values({ userId, groupId, message })
+      .returning();
+    return chatMessage;
   }
 }
 

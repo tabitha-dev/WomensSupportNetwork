@@ -33,7 +33,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       content: req.body.content,
       userId: req.user!.id,
       groupId: parseInt(req.params.id),
-      imageUrl: null,
+      postType: req.body.postType,
+      imageUrl: req.body.postType === "image" ? req.body.mediaUrl : null,
+      musicUrl: req.body.postType === "music" ? req.body.mediaUrl : null,
       likeCount: 0,
     });
 
@@ -227,6 +229,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { password, ...safeUser } = user;
     res.json(safeUser);
   });
+
+  // Group member routes
+  app.get("/api/groups/:id/members", async (req, res) => {
+    const members = await storage.getGroupMembers(parseInt(req.params.id));
+    res.json(members);
+  });
+
+  app.post("/api/groups/:id/members", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send("Not authenticated");
+    }
+    await storage.addGroupMember(req.user!.id, parseInt(req.params.id), req.body.role);
+    res.sendStatus(200);
+  });
+
+  // Group chat routes
+  app.get("/api/groups/:id/chat", async (req, res) => {
+    const messages = await storage.getGroupChat(parseInt(req.params.id));
+    res.json(messages);
+  });
+
+  app.post("/api/groups/:id/chat", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send("Not authenticated");
+    }
+    const message = await storage.createChatMessage(
+      req.user!.id,
+      parseInt(req.params.id),
+      req.body.message
+    );
+    res.status(201).json(message);
+  });
+
 
   const httpServer = createServer(app);
   return httpServer;
