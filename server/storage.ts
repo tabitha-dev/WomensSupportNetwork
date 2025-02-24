@@ -63,7 +63,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGroupById(id: number): Promise<Group | undefined> {
-    const [group] = await db.select().from(groups).where(eq(groups.id, id));
+    const [group] = await db
+      .select({
+        id: groups.id,
+        name: groups.name,
+        description: groups.description,
+        category: groups.category,
+        iconUrl: groups.iconUrl,
+        coverUrl: groups.coverUrl,
+        createdAt: groups.createdAt,
+      })
+      .from(groups)
+      .where(eq(groups.id, id));
     return group;
   }
 
@@ -72,13 +83,19 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(posts)
       .where(eq(posts.groupId, groupId))
-      .orderBy(posts.createdAt);
+      .orderBy(desc(posts.createdAt));
   }
 
   async createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post> {
     const [newPost] = await db
       .insert(posts)
-      .values(post)
+      .values({
+        content: post.content,
+        userId: post.userId,
+        groupId: post.groupId,
+        imageUrl: post.imageUrl || null,
+        likeCount: 0,
+      })
       .returning();
     return newPost;
   }

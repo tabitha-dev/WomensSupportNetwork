@@ -12,19 +12,23 @@ import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useState } from "react";
 
 export default function ProfilePage() {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
   const userId = parseInt(id!);
   const isOwnProfile = currentUser?.id === userId;
+  const [isEditing, setIsEditing] = useState(false);
 
   const { data: user, isLoading: isLoadingUser } = useQuery<User>({
     queryKey: [`/api/users/${userId}`],
+    enabled: !!userId,
   });
 
-  const { data: posts, isLoading: isLoadingPosts } = useQuery<Post[]>({
+  const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/posts`],
+    enabled: !!userId,
   });
 
   const updateProfileMutation = useMutation({
@@ -34,6 +38,7 @@ export default function ProfilePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+      setIsEditing(false);
     },
   });
 
@@ -73,43 +78,74 @@ export default function ProfilePage() {
                 </AvatarFallback>
               </Avatar>
               {isOwnProfile && (
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => setIsEditing(!isEditing)}
+                >
                   <Settings className="h-4 w-4" />
-                  Edit Profile
+                  {isEditing ? "Cancel Editing" : "Edit Profile"}
                 </Button>
               )}
             </div>
-            <div className="mt-4 space-y-2">
-              <h1 className="text-2xl font-bold">{user.displayName}</h1>
-              <p className="text-muted-foreground">@{user.username}</p>
-              {user.bio && <p className="text-foreground/90">{user.bio}</p>}
-
-              <div className="flex flex-wrap gap-4 mt-4 text-sm text-muted-foreground">
-                {user.location && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {user.location}
-                  </div>
-                )}
-                {user.occupation && (
-                  <div className="flex items-center gap-1">
-                    <Briefcase className="h-4 w-4" />
-                    {user.occupation}
-                  </div>
-                )}
-                {user.relationshipStatus && (
-                  <div className="flex items-center gap-1">
-                    <Heart className="h-4 w-4" />
-                    {user.relationshipStatus}
-                  </div>
-                )}
-              </div>
-
-              {user.favoriteQuote && (
-                <div className="flex items-center gap-2 mt-4 italic text-muted-foreground">
-                  <Quote className="h-4 w-4" />
-                  "{user.favoriteQuote}"
+            <div className="mt-4 space-y-4">
+              {isEditing ? (
+                <div className="space-y-4">
+                  <Input
+                    placeholder="Display Name"
+                    defaultValue={user.displayName}
+                    onChange={(e) => updateProfileMutation.mutate({ displayName: e.target.value })}
+                  />
+                  <Textarea
+                    placeholder="Bio"
+                    defaultValue={user.bio || ""}
+                    onChange={(e) => updateProfileMutation.mutate({ bio: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Location"
+                    defaultValue={user.location || ""}
+                    onChange={(e) => updateProfileMutation.mutate({ location: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Occupation"
+                    defaultValue={user.occupation || ""}
+                    onChange={(e) => updateProfileMutation.mutate({ occupation: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Favorite Quote"
+                    defaultValue={user.favoriteQuote || ""}
+                    onChange={(e) => updateProfileMutation.mutate({ favoriteQuote: e.target.value })}
+                  />
                 </div>
+              ) : (
+                <>
+                  <h1 className="text-2xl font-bold">{user.displayName}</h1>
+                  <p className="text-muted-foreground">@{user.username}</p>
+                  {user.bio && <p className="text-foreground/90">{user.bio}</p>}
+
+                  <div className="flex flex-wrap gap-4 mt-4 text-sm text-muted-foreground">
+                    {user.location && (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        {user.location}
+                      </div>
+                    )}
+                    {user.occupation && (
+                      <div className="flex items-center gap-1">
+                        <Briefcase className="h-4 w-4" />
+                        {user.occupation}
+                      </div>
+                    )}
+                  </div>
+
+                  {user.favoriteQuote && (
+                    <div className="flex items-center gap-2 mt-4 italic text-muted-foreground">
+                      <Quote className="h-4 w-4" />
+                      "{user.favoriteQuote}"
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </CardContent>
@@ -130,10 +166,10 @@ export default function ProfilePage() {
 
           <TabsContent value="posts" className="mt-6">
             <div className="space-y-4">
-              {posts?.map((post) => (
+              {posts.map((post) => (
                 <PostComponent key={post.id} post={post} />
               ))}
-              {posts?.length === 0 && (
+              {posts.length === 0 && (
                 <Card>
                   <CardContent className="p-8 text-center text-muted-foreground">
                     No posts yet
@@ -153,11 +189,6 @@ export default function ProfilePage() {
                   <div>
                     <h3 className="font-semibold mb-2">Interests</h3>
                     <p className="text-muted-foreground">{user.interests}</p>
-                  </div>
-                )}
-                {isOwnProfile && (
-                  <div className="pt-4 border-t">
-                    <Button variant="outline">Customize Profile</Button>
                   </div>
                 )}
               </CardContent>
