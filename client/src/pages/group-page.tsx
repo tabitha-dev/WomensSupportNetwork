@@ -6,9 +6,10 @@ import PostComponent from "@/components/post";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { motion } from "framer-motion";
 
 type PostFormData = {
   content: string;
@@ -56,55 +57,82 @@ export default function GroupPage() {
   }
 
   if (!group) {
-    return <div>Group not found</div>;
+    return (
+      <div className="container mx-auto p-4">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <h2 className="text-xl font-semibold mb-2">Group Not Found</h2>
+            <p className="text-muted-foreground">
+              The group you're looking for doesn't exist or has been removed.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{group.name}</CardTitle>
-          <p className="text-muted-foreground">{group.description}</p>
-        </CardHeader>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card className="glass-card">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Users className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <CardTitle>{group.name}</CardTitle>
+                <p className="text-muted-foreground mt-1">{group.category}</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-foreground/90">{group.description}</p>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create Post</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form 
-            onSubmit={form.handleSubmit((data) => createPostMutation.mutate(data))}
-            className="space-y-4"
-          >
-            <Textarea
-              placeholder="Share your thoughts..."
-              {...form.register("content")}
-            />
-            <Button 
-              type="submit"
-              disabled={createPostMutation.isPending}
-              className="flex items-center gap-2"
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Create Post</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form 
+              onSubmit={form.handleSubmit((data) => createPostMutation.mutate(data))}
+              className="space-y-4"
             >
-              <Send className="h-4 w-4" />
-              Post
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <Textarea
+                placeholder="Share your thoughts with the group..."
+                {...form.register("content")}
+              />
+              <Button 
+                type="submit"
+                disabled={createPostMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                <Send className="h-4 w-4" />
+                Post
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-      <div className="space-y-4">
-        {posts.map((post) => (
-          <PostComponent key={post.id} post={post} />
-        ))}
-        {posts.length === 0 && (
-          <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">
-              No posts yet. Be the first to share something!
-            </CardContent>
-          </Card>
-        )}
-      </div>
+        <div className="space-y-4 mt-6">
+          {posts.map((post) => (
+            <PostComponent key={post.id} post={post} />
+          ))}
+          {posts.length === 0 && (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                No posts yet. Be the first to share something!
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }
