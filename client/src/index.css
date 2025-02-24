@@ -18,19 +18,30 @@
   }
 
   .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:bg-white/90;
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 
+           shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]
+           hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.47)]
+           transition-all duration-300 hover:bg-white/90
+           hover:translate-y-[-2px];
+  }
+
+  .nav-glass {
+    @apply bg-white/70 backdrop-blur-xl border-b border-white/20
+           shadow-sm supports-[backdrop-filter]:bg-white/60;
   }
 
   .content-container {
-    @apply bg-background/95 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60;
+    @apply bg-background/95 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/60
+           px-4 py-6 rounded-xl border border-white/20;
   }
 
   .hover-scale {
-    @apply transition-transform duration-200 hover:scale-102;
+    @apply transition-transform duration-200 hover:scale-105;
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-purple-500 to-blue-500 
+           bg-clip-text text-transparent font-bold;
   }
 
   .animate-fade-in {
@@ -40,6 +51,24 @@
   .animate-slide-in {
     @apply opacity-0 animate-in slide-in-from-bottom duration-500;
   }
+
+  .card-grid {
+    @apply grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .button-glow {
+    @apply relative overflow-hidden;
+  }
+
+  .button-glow::after {
+    @apply content-[''] absolute top-0 left-[-50%] w-[150%] h-full
+           bg-gradient-to-r from-transparent via-white/20 to-transparent
+           transform rotate-[35deg] transition-transform duration-1000;
+  }
+
+  .button-glow:hover::after {
+    @apply translate-x-full;
+  }
 }
 
 @keyframes scale {
@@ -48,6 +77,16 @@
   100% { transform: scale(1); }
 }
 
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
 .scale-animation {
   animation: scale 0.3s ease-in-out;
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
 }
