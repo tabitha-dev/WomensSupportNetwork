@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -8,11 +9,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "wouter";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Navigation() {
   const { user, logoutMutation } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   if (!user) return null;
 
@@ -37,30 +39,47 @@ export default function Navigation() {
 
         <div className="flex-1" />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:scale-110 transition-transform">
-              <Avatar className="h-8 w-8 border-2 border-primary/20">
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  {user.displayName.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 glass-card">
-            <DropdownMenuItem className="flex items-center gap-2 py-2">
-              <User className="h-4 w-4 text-primary" />
-              <span className="font-medium">{user.displayName}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="flex items-center gap-2 text-destructive focus:text-destructive py-2"
-              onClick={() => logoutMutation.mutate()}
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="hover-scale"
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:scale-110 transition-transform">
+                <Avatar className="h-8 w-8 border-2 border-primary/20">
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {user.displayName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 glass-card">
+              <DropdownMenuItem asChild className="py-2">
+                <Link href={`/users/${user.id}`} className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-primary" />
+                  <span className="font-medium">{user.displayName}</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex items-center gap-2 text-destructive focus:text-destructive py-2"
+                onClick={() => logoutMutation.mutate()}
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </motion.nav>
   );

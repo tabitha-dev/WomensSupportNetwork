@@ -10,6 +10,8 @@ export const users = pgTable("users", {
   bio: text("bio"),
   isAdmin: boolean("is_admin").default(false),
   avatarUrl: text("avatar_url"),
+  coverUrl: text("cover_url"),
+  theme: text("theme").default("light"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -19,6 +21,7 @@ export const groups = pgTable("groups", {
   description: text("description").notNull(),
   category: text("category").notNull(),
   iconUrl: text("icon_url"),
+  coverUrl: text("cover_url"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -27,6 +30,7 @@ export const posts = pgTable("posts", {
   content: text("content").notNull(),
   userId: integer("user_id").references(() => users.id),
   groupId: integer("group_id").references(() => groups.id),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow(),
   likeCount: integer("like_count").default(0),
 });
@@ -56,6 +60,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   displayName: true,
   bio: true,
   avatarUrl: true,
+  theme: true,
 });
 
 export const insertGroupSchema = createInsertSchema(groups);
