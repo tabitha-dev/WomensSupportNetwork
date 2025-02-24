@@ -21,21 +21,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
-// Define the complete group response type
-interface GroupResponse {
-  id: number;
-  name: string;
-  description: string;
-  category: string;
-  iconUrl: string | null;
-  coverUrl: string | null;
-  isPrivate: boolean;
-  createdAt: string;
-  posts: Post[];
-  members: GroupMember[];
-  chatMessages: GroupChat[];
-}
-
 type PostFormData = {
   content: string;
   postType: "text" | "image" | "music";
@@ -65,18 +50,9 @@ export default function GroupPage() {
     },
   });
 
-  const { data: group, isLoading, error } = useQuery<GroupResponse>({
+  const { data: group, isLoading } = useQuery<Group>({
     queryKey: [`/api/groups/${groupId}`],
     enabled: !isNaN(groupId),
-    retry: 1,
-    onError: (error) => {
-      console.error("Failed to fetch group:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load group data. Please try again.",
-        variant: "destructive",
-      });
-    },
   });
 
   const createPostMutation = useMutation({
@@ -161,7 +137,7 @@ export default function GroupPage() {
     );
   }
 
-  const isGroupMember = group.members.some((member) => member.userId === user?.id);
+  const isGroupMember = group.members?.some((member) => member.userId === user?.id);
 
   return (
     <div className="space-y-6">
@@ -278,10 +254,10 @@ export default function GroupPage() {
               </Card>
 
               {/* Posts */}
-              {group.posts.map((post) => (
+              {group.posts?.map((post) => (
                 <PostComponent key={post.id} post={post} />
               ))}
-              {group.posts.length === 0 && (
+              {!group.posts?.length && (
                 <Card>
                   <CardContent className="p-8 text-center text-muted-foreground">
                     No posts yet. Be the first to share something!
@@ -315,11 +291,11 @@ export default function GroupPage() {
           {/* Members */}
           <Card>
             <CardHeader>
-              <CardTitle>Members ({group.members.length})</CardTitle>
+              <CardTitle>Members ({group.members?.length || 0})</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-4">
-                {group.members.map((member) => (
+                {group.members?.map((member) => (
                   <div
                     key={member.userId}
                     className="flex items-center space-x-4"
@@ -350,7 +326,7 @@ export default function GroupPage() {
               </CardHeader>
               <CardContent>
                 <div className="h-[400px] overflow-y-auto mb-4 space-y-4">
-                  {group.chatMessages.map((message) => (
+                  {group.chatMessages?.map((message) => (
                     <div
                       key={message.id}
                       className={`flex items-start gap-2 ${
