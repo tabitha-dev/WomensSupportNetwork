@@ -26,6 +26,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid group ID" });
       }
 
+      console.log("Fetching group with ID:", groupId);
+
       // Get the group
       const group = await storage.getGroupById(groupId);
       if (!group) {
@@ -48,7 +50,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         chatMessages: chatMessages || []
       };
 
-      console.log("Sending group response:", {
+      console.log("Group data retrieved successfully:", {
         id: groupResponse.id,
         name: groupResponse.name,
         memberCount: groupResponse.members.length,

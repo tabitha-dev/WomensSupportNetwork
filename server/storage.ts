@@ -86,14 +86,17 @@ export class DatabaseStorage implements IStorage {
 
   async getGroupById(id: number): Promise<Group | undefined> {
     try {
+      console.log('Fetching group with ID:', id);
       const [group] = await db
         .select()
         .from(groups)
         .where(eq(groups.id, id))
         .limit(1);
+
+      console.log('Found group:', group);
       return group;
     } catch (error) {
-      console.error('Error fetching group:', error);
+      console.error('Error in getGroupById:', error);
       return undefined;
     }
   }
@@ -181,6 +184,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: groups.createdAt,
         iconUrl: groups.iconUrl,
         coverUrl: groups.coverUrl,
+        isPrivate: groups.isPrivate,
       })
       .from(userGroups)
       .innerJoin(groups, eq(userGroups.groupId, groups.id))
