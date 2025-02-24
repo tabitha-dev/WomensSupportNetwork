@@ -1,4 +1,4 @@
-import { users, groups, posts, userGroups, comments, likes, type User, type InsertUser, type Group, type Post, type Comment, type GroupMember, type GroupChat } from "@shared/schema";
+import { users, groups, posts, userGroups, comments, likes, groupMembers, groupChat, type User, type InsertUser, type Group, type Post, type Comment, type GroupMember, type GroupChat } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
@@ -86,16 +86,7 @@ export class DatabaseStorage implements IStorage {
 
   async getGroupById(id: number): Promise<Group | undefined> {
     const [group] = await db
-      .select({
-        id: groups.id,
-        name: groups.name,
-        description: groups.description,
-        category: groups.category,
-        iconUrl: groups.iconUrl,
-        coverUrl: groups.coverUrl,
-        isPrivate: groups.isPrivate,
-        createdAt: groups.createdAt,
-      })
+      .select()
       .from(groups)
       .where(eq(groups.id, id));
 
