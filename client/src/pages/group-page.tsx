@@ -50,56 +50,14 @@ export default function GroupPage() {
     },
   });
 
+  // Query for fetching group data
   const { data: group, isLoading, error } = useQuery<GroupWithRelations>({
     queryKey: [`/api/groups/${groupId}`],
     enabled: !isNaN(groupId),
     retry: 3,
   });
 
-  // Debug logging
-  console.log('Frontend: Current group page state:', {
-    groupId,
-    isLoading,
-    hasError: !!error,
-    hasData: !!group
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className="mt-8">
-        <CardContent className="p-8 text-center">
-          <h2 className="text-2xl font-semibold mb-2">Error Loading Group</h2>
-          <p className="text-muted-foreground">
-            There was an error loading the group. Please try again later.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!group) {
-    return (
-      <Card className="mt-8">
-        <CardContent className="p-8 text-center">
-          <h2 className="text-2xl font-semibold mb-2">Group Not Found</h2>
-          <p className="text-muted-foreground">
-            The group you're looking for doesn't exist or has been removed.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const isGroupMember = group.members?.some((member) => member.userId === user?.id);
-
+  // All mutations defined at the top level
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {
       await apiRequest("POST", `/api/groups/${groupId}/posts`, data);
@@ -160,6 +118,45 @@ export default function GroupPage() {
       });
     },
   });
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <Card className="mt-8">
+        <CardContent className="p-8 text-center">
+          <h2 className="text-2xl font-semibold mb-2">Error Loading Group</h2>
+          <p className="text-muted-foreground">
+            There was an error loading the group. Please try again later.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Handle missing group data
+  if (!group) {
+    return (
+      <Card className="mt-8">
+        <CardContent className="p-8 text-center">
+          <h2 className="text-2xl font-semibold mb-2">Group Not Found</h2>
+          <p className="text-muted-foreground">
+            The group you're looking for doesn't exist or has been removed.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isGroupMember = group.members?.some((member) => member.userId === user?.id);
 
   return (
     <div className="space-y-6">

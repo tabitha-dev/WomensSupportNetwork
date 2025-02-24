@@ -1,0 +1,77 @@
+Warning: React has detected a change in the order of Hooks called by GroupPage. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+1. useContext                 useContext
+2. useContext                 useContext
+3. useState                   useState
+4. useEffect                  useEffect
+5. useRef                     useRef
+6. useRef                     useRef
+7. useState                   useState
+8. useRef                     useRef
+9. useEffect                  useEffect
+10. useEffect                 useEffect
+11. useEffect                 useEffect
+12. useEffect                 useEffect
+13. useEffect                 useEffect
+14. useEffect                 useEffect
+15. useEffect                 useEffect
+16. useEffect                 useEffect
+17. useRef                    useRef
+18. useRef                    useRef
+19. useState                  useState
+20. useRef                    useRef
+21. useEffect                 useEffect
+22. useEffect                 useEffect
+23. useEffect                 useEffect
+24. useEffect                 useEffect
+25. useEffect                 useEffect
+26. useEffect                 useEffect
+27. useEffect                 useEffect
+28. useEffect                 useEffect
+29. useContext                useContext
+30. useContext                useContext
+31. useContext                useContext
+32. useEffect                 useEffect
+33. useState                  useState
+34. useCallback               useCallback
+35. useSyncExternalStore      useSyncExternalStore
+36. useEffect                 useEffect
+37. undefined                 useContext
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    at GroupPage (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/pages/group-page.tsx:40:18)
+    at Route (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=9ad19637:323:16)
+    at Switch (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=9ad19637:379:17)
+    at Router
+    at main
+    at div
+    at AuthProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at ThemeProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/hooks/use-theme.tsx:20:33)
+    at QueryClientProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=9ad19637:2805:3)
+    at App
+Frontend: Current group page state: 
+Object {groupId: 1, isLoading: false, hasError: false, hasData: true}
+Rendered more hooks than during the previous render.
+Frontend: Current group page state: 
+Object {groupId: 1, isLoading: false, hasError: false, hasData: true}
+Frontend: Current group page state: 
+Object {groupId: 1, isLoading: false, hasError: false, hasData: true}
+Rendered more hooks than during the previous render.
+The above error occurred in the <GroupPage> component:
+
+    at GroupPage (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/pages/group-page.tsx:40:18)
+    at Route (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=9ad19637:323:16)
+    at Switch (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=9ad19637:379:17)
+    at Router
+    at main
+    at div
+    at AuthProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at ThemeProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/hooks/use-theme.tsx:20:33)
+    at QueryClientProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=9ad19637:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+Rendered more hooks than during the previous render.
