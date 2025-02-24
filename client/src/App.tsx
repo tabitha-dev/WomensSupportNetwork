@@ -31,7 +31,7 @@ export default function App() {
         <AuthProvider>
           <div className="min-h-screen bg-background">
             <Navigation />
-            <main>
+            <main className="container mx-auto px-4 py-6">
               <Router />
             </main>
             <Toaster />
