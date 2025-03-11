@@ -113,6 +113,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add this endpoint after the other post-related endpoints
+  app.delete("/api/posts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.id);
+      const success = await storage.deletePost(postId, req.user!.id);
+
+      if (!success) {
+        return res.status(404).json({ error: "Post not found or unauthorized" });
+      }
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      res.status(500).json({ error: "Failed to delete post" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

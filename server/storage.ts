@@ -43,6 +43,7 @@ export interface IStorage {
   removeGroupMember(userId: number, groupId: number): Promise<void>;
   getGroupChat(groupId: number): Promise<GroupChat[]>;
   createChatMessage(userId: number, groupId: number, message: string): Promise<GroupChat>;
+  deletePost(postId: number, userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -498,6 +499,46 @@ export class DatabaseStorage implements IStorage {
       .values({ userId, groupId, message })
       .returning();
     return chatMessage;
+  }
+
+  async deletePost(postId: number, userId: number): Promise<boolean> {
+    try {
+      // First check if the post exists and belongs to the user
+      const [post] = await db
+        .select()
+        .from(posts)
+        .where(and(
+          eq(posts.id, postId),
+          eq(posts.userId, userId)
+        ));
+
+      if (!post) {
+        return false;
+      }
+
+      // Delete the post
+      await db.transaction(async (tx) => {
+        // Delete associated comments first
+        await tx
+          .delete(comments)
+          .where(eq(comments.postId, postId));
+
+        // Delete associated likes
+        await tx
+          .delete(likes)
+          .where(eq(likes.postId, postId));
+
+        // Finally delete the post
+        await tx
+          .delete(posts)
+          .where(eq(posts.id, postId));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      return false;
+    }
   }
 }
 

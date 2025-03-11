@@ -13,6 +13,7 @@ import {
   Send,
   Image as ImageIcon,
   Video,
+  Trash2,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -24,9 +25,16 @@ type PostProps = {
 
 function getYouTubeEmbedUrl(url: string) {
   try {
-    const videoId = url.split('v=')[1]?.split('&')[0];
-    if (!videoId) return null;
-    return `https://www.youtube.com/embed/${videoId}`;
+    // Handle both regular and shortened YouTube URLs
+    if (url.includes('youtu.be/')) {
+      const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      if (!videoId) return null;
+      return `https://www.youtube.com/embed/${videoId}`;
+    } else {
+      const videoId = url.split('v=')[1]?.split('&')[0];
+      if (!videoId) return null;
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
   } catch {
     return null;
   }
@@ -50,6 +58,15 @@ export default function PostComponent({ post }: PostProps) {
 
   const { data: isLiked = false } = useQuery({
     queryKey: [`/api/posts/${post.id}/liked`],
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/posts/${post.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
+    },
   });
 
   const updatePostMutation = useMutation({
@@ -106,10 +123,24 @@ export default function PostComponent({ post }: PostProps) {
                 </span>
               </div>
             </div>
-            {canEdit && !isEditing && (
-              <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-                {/*<Edit2 className="h-4 w-4" />*/}
-              </Button>
+            {canEdit && (
+              <div className="flex gap-2">
+                {!isEditing && (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive/90"
+                      onClick={() => deletePostMutation.mutate()}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </CardHeader>
@@ -143,7 +174,11 @@ export default function PostComponent({ post }: PostProps) {
             </div>
           ) : (
             <div>
-              <p className="whitespace-pre-wrap">{post.content}</p>
+              <div className="flex items-center gap-2 mb-2">
+                {post.postType === "image" && <ImageIcon className="h-4 w-4 text-muted-foreground" />}
+                {post.postType === "video" && <Video className="h-4 w-4 text-muted-foreground" />}
+                <p className="whitespace-pre-wrap">{post.content}</p>
+              </div>
 
               {post.postType === "image" && post.imageUrl && (
                 <div className="mt-4 relative aspect-video rounded-lg overflow-hidden">
@@ -215,7 +250,7 @@ export default function PostComponent({ post }: PostProps) {
               <div className="space-y-2">
                 {comments.map((comment) => (
                   <motion.div
-                    key={comment.id}
+                    key={`comment-${comment.id}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3 }}
