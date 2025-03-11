@@ -101,7 +101,6 @@ export class DatabaseStorage implements IStorage {
             userId: posts.userId,
             groupId: posts.groupId,
             imageUrl: posts.imageUrl,
-            musicUrl: posts.musicUrl,
             videoUrl: posts.videoUrl,
             postType: posts.postType,
             createdAt: posts.createdAt,
@@ -168,7 +167,7 @@ export class DatabaseStorage implements IStorage {
         groupId: post.groupId,
         postType: post.postType || "text",
         imageUrl: post.imageUrl,
-        musicUrl: post.musicUrl,
+        videoUrl: post.videoUrl,
         likeCount: 0,
       })
       .returning();

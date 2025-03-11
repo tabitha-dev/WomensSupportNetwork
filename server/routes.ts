@@ -90,16 +90,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/groups/:id/posts", async (req, res) => {
-    try {
-      const posts = await storage.getGroupPosts(parseInt(req.params.id));
-      res.json(posts);
-    } catch (error) {
-      console.error("Error fetching group posts:", error);
-      res.status(500).json({ error: "Failed to fetch posts" });
-    }
-  });
-
   app.post("/api/groups/:id/posts", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
@@ -113,7 +103,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         postType: req.body.postType,
         imageUrl: req.body.postType === "image" ? req.body.mediaUrl : null,
         videoUrl: req.body.postType === "video" ? req.body.mediaUrl : null,
-        musicUrl: null,
         likeCount: 0,
       });
 
