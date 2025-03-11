@@ -60,7 +60,19 @@ export default function GroupPage() {
   // All mutations defined at the top level
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {
-      await apiRequest("POST", `/api/groups/${groupId}/posts`, data);
+      console.log('Creating post with data:', data);
+      const response = await apiRequest("POST", `/api/groups/${groupId}/posts`, {
+        content: data.content,
+        postType: data.postType,
+        mediaUrl: data.mediaUrl || null
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create post');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
@@ -70,11 +82,11 @@ export default function GroupPage() {
         description: "Post created successfully!",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Failed to create post:", error);
       toast({
         title: "Error",
-        description: "Failed to create post. Please try again.",
+        description: error.message || "Failed to create post. Please try again.",
         variant: "destructive",
       });
     },
