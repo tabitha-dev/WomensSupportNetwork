@@ -10,37 +10,59 @@ import express from "express";
 // Helper functions for URL processing
 function extractYouTubeVideoId(url: string): string | null {
   try {
-    if (!url) return null;
+    console.log('YouTube URL processing input:', url);
 
-    // Handle youtu.be URLs
-    if (url.includes('youtu.be/')) {
-      const parts = url.split('youtu.be/');
-      if (parts.length < 2) return null;
-
-      // Extract the ID and remove any query parameters
-      const videoId = parts[1].split('?')[0].split('&')[0];
-      return videoId || null;
+    if (!url) {
+      console.log('Empty URL provided');
+      return null;
     }
-    return null;
+
+    const urlParts = url.split('youtu.be/');
+    if (urlParts.length !== 2) {
+      console.log('Invalid URL format - expected youtu.be/ pattern');
+      return null;
+    }
+
+    // Get the part after youtu.be/
+    let videoId = urlParts[1];
+
+    // Remove any query parameters or hash
+    videoId = videoId.split('?')[0].split('#')[0];
+
+    console.log('Extracted video ID:', videoId);
+
+    if (!videoId || videoId.length === 0) {
+      console.log('Empty video ID after extraction');
+      return null;
+    }
+
+    return videoId;
   } catch (error) {
-    console.error('Error extracting YouTube ID:', error);
+    console.error('Error in extractYouTubeVideoId:', error);
     return null;
   }
 }
 
 function extractSpotifyTrackId(url: string): string | null {
   try {
-    if (!url) return null;
+    console.log('Spotify URL processing input:', url);
 
-    if (url.includes('spotify.com/track/')) {
-      const match = url.match(/track\/([a-zA-Z0-9]+)/);
-      if (match && match[1]) {
-        return match[1].split('?')[0];
-      }
+    if (!url || !url.includes('spotify.com/track/')) {
+      console.log('Invalid Spotify URL format');
+      return null;
     }
-    return null;
+
+    const match = url.match(/track\/([a-zA-Z0-9]+)/);
+    if (!match || !match[1]) {
+      console.log('Could not extract track ID');
+      return null;
+    }
+
+    const trackId = match[1].split('?')[0];
+    console.log('Extracted track ID:', trackId);
+    return trackId;
   } catch (error) {
-    console.error('Error extracting Spotify track ID:', error);
+    console.error('Error in extractSpotifyTrackId:', error);
     return null;
   }
 }
@@ -79,47 +101,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/groups/:id/posts", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      console.log('Received post creation request:', req.body);
       const { content, postType, mediaUrl } = req.body;
-      console.log('Received post request:', { content, postType, mediaUrl });
+
+      if (!content) {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      if (!postType) {
+        return res.status(400).json({ error: "Post type is required" });
+      }
 
       let processedVideoUrl = null;
       let processedMusicUrl = null;
       let processedImageUrl = null;
 
       if (postType === "video" && mediaUrl) {
+        console.log('Processing video URL:', mediaUrl);
         const videoId = extractYouTubeVideoId(mediaUrl);
+
         if (!videoId) {
-          console.error('Failed to extract video ID from URL:', mediaUrl);
-          return res.status(400).json({ 
+          console.error('Failed to extract video ID from:', mediaUrl);
+          return res.status(400).json({
             error: "Invalid YouTube URL",
-            details: "Please provide a valid youtu.be URL"
+            details: "Could not extract video ID from the provided URL"
           });
         }
+
         processedVideoUrl = `https://www.youtube.com/embed/${videoId}`;
-        console.log('Processed video URL:', processedVideoUrl);
+        console.log('Final video URL:', processedVideoUrl);
       }
 
       if (postType === "music" && mediaUrl) {
+        console.log('Processing music URL:', mediaUrl);
         const trackId = extractSpotifyTrackId(mediaUrl);
+
         if (!trackId) {
-          console.error('Failed to extract track ID from URL:', mediaUrl);
-          return res.status(400).json({ 
+          console.error('Failed to extract track ID from:', mediaUrl);
+          return res.status(400).json({
             error: "Invalid Spotify URL",
-            details: "Please provide a valid Spotify track URL"
+            details: "Could not extract track ID from the provided URL"
           });
         }
+
         processedMusicUrl = `https://open.spotify.com/embed/track/${trackId}`;
-        console.log('Processed music URL:', processedMusicUrl);
+        console.log('Final music URL:', processedMusicUrl);
       }
 
       if (postType === "image") {
         processedImageUrl = mediaUrl;
       }
+
+      console.log('Creating post with processed URLs:', {
+        videoUrl: processedVideoUrl,
+        musicUrl: processedMusicUrl,
+        imageUrl: processedImageUrl
+      });
 
       const post = await storage.createPost({
         content,
@@ -136,9 +178,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(post);
     } catch (error) {
       console.error("Error creating post:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to create post",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : "Unknown error occurred"
       });
     }
   });
