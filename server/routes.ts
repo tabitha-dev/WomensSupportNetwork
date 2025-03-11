@@ -17,22 +17,35 @@ function extractYouTubeVideoId(url: string): string | null {
       return null;
     }
 
-    const urlParts = url.split('youtu.be/');
-    if (urlParts.length !== 2) {
-      console.log('Invalid URL format - expected youtu.be/ pattern');
+    let videoId: string | null = null;
+
+    // Handle youtu.be format
+    if (url.includes('youtu.be/')) {
+      const urlParts = url.split('youtu.be/');
+      if (urlParts.length === 2) {
+        videoId = urlParts[1].split('?')[0].split('&')[0].split('#')[0];
+        console.log('Extracted video ID from youtu.be URL:', videoId);
+      }
+    }
+    // Handle youtube.com format
+    else if (url.includes('youtube.com')) {
+      try {
+        const urlObj = new URL(url);
+        videoId = urlObj.searchParams.get('v');
+        console.log('Extracted video ID from youtube.com URL:', videoId);
+      } catch (urlError) {
+        console.error('Failed to parse YouTube URL:', urlError);
+      }
+    }
+
+    if (!videoId) {
+      console.log('No video ID found');
       return null;
     }
 
-    // Get the part after youtu.be/
-    let videoId = urlParts[1];
-
-    // Remove any query parameters or hash
-    videoId = videoId.split('?')[0].split('#')[0];
-
-    console.log('Extracted video ID:', videoId);
-
-    if (!videoId || videoId.length === 0) {
-      console.log('Empty video ID after extraction');
+    // Validate video ID format (typically 11 characters)
+    if (videoId.length !== 11) {
+      console.log('Invalid video ID length:', videoId.length);
       return null;
     }
 

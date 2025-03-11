@@ -14,6 +14,7 @@ import {
   Users,
   Image as ImageIcon,
   Music,
+  Video,
   MessageSquare,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -23,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 
 type PostFormData = {
   content: string;
-  postType: "text" | "image" | "music";
+  postType: "text" | "image" | "music" | "video";
   mediaUrl?: string;
 };
 
@@ -57,9 +58,25 @@ export default function GroupPage() {
     retry: 3,
   });
 
+  // Helper function to detect URL type
+  const detectUrlType = (url: string): "video" | "music" | "image" => {
+    if (url.includes('youtu.be/') || url.includes('youtube.com/')) {
+      return "video";
+    }
+    if (url.includes('spotify.com/track/')) {
+      return "music";
+    }
+    return "image"; // Default to image for other URLs
+  };
+
   // All mutations defined at the top level
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {
+      // Automatically detect the correct post type based on the URL
+      if (data.mediaUrl) {
+        data.postType = detectUrlType(data.mediaUrl);
+      }
+
       console.log('Creating post with data:', data);
       const response = await apiRequest("POST", `/api/groups/${groupId}/posts`, {
         content: data.content,
@@ -258,6 +275,13 @@ export default function GroupPage() {
                       >
                         <Music className="h-4 w-4" />
                       </Button>
+                      <Button
+                        type="button"
+                        variant={postForm.watch("postType") === "video" ? "default" : "outline"}
+                        onClick={() => postForm.setValue("postType", "video")}
+                      >
+                        <Video className="h-4 w-4" />
+                      </Button>
                     </div>
 
                     <Textarea
@@ -266,7 +290,8 @@ export default function GroupPage() {
                     />
 
                     {(postForm.watch("postType") === "image" ||
-                      postForm.watch("postType") === "music") && (
+                      postForm.watch("postType") === "music" ||
+                      postForm.watch("postType") === "video") && (
                       <Input
                         placeholder={`Enter ${postForm.watch("postType")} URL`}
                         {...postForm.register("mediaUrl")}
