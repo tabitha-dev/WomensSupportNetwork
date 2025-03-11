@@ -58,6 +58,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         postType: "music",
         musicUrl,
         imageUrl: null,
+        videoUrl: null,
         likeCount: 0,
       });
 
@@ -142,42 +143,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Handle YouTube URLs
       if (postType === "video" && req.body.mediaUrl) {
-        // Extract video ID from various YouTube URL formats
-        const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-        let videoId;
-        const match = req.body.mediaUrl.match(youtubeRegex);
-        if (match && match[1]) {
-          videoId = match[1];
-        } else {
-          // Try handling shortened YouTube URLs
-          const shortUrlRegex = /youtu\.be\/([^?]+)/;
-          const shortMatch = req.body.mediaUrl.match(shortUrlRegex);
-          if (shortMatch && shortMatch[1]) {
-            videoId = shortMatch[1];
-          }
-        }
+        try {
+          console.log('Processing YouTube URL:', req.body.mediaUrl);
+          const url = req.body.mediaUrl;
+          let videoId = null;
 
-        if (videoId) {
-          videoUrl = `https://www.youtube.com/embed/${videoId}`;
-          console.log('Processed YouTube URL:', videoUrl);
-        } else {
-          console.error('Invalid YouTube URL:', req.body.mediaUrl);
-          return res.status(400).json({ error: "Invalid YouTube URL" });
+          // Handle youtu.be format
+          if (url.includes('youtu.be/')) {
+            const urlParts = url.split('youtu.be/');
+            if (urlParts.length > 1) {
+              videoId = urlParts[1].split(/[?#]/)[0]; // Remove query params and hash
+            }
+          } 
+          // Handle youtube.com format
+          else if (url.includes('youtube.com')) {
+            const urlObj = new URL(url);
+            videoId = urlObj.searchParams.get('v');
+          }
+
+          console.log('Extracted video ID:', videoId);
+
+          if (videoId && videoId.length === 11) {
+            videoUrl = `https://www.youtube.com/embed/${videoId}`;
+            console.log('Processed YouTube URL:', videoUrl);
+          } else {
+            console.error('Invalid YouTube video ID:', videoId);
+            return res.status(400).json({ error: "Invalid YouTube video ID" });
+          }
+        } catch (error) {
+          console.error('Error processing YouTube URL:', error);
+          return res.status(400).json({ error: "Failed to process YouTube URL" });
         }
       }
 
       // Handle Spotify URLs
       if (postType === "music" && req.body.mediaUrl) {
-        const spotifyRegex = /(?:spotify:track:|open\.spotify\.com\/track\/)([a-zA-Z0-9]+)(?:\?|$)/;
-        const match = req.body.mediaUrl.match(spotifyRegex);
-        if (match && match[1]) {
-          musicUrl = `https://open.spotify.com/embed/track/${match[1]}`;
-          console.log('Processed Spotify URL:', musicUrl);
-        } else {
-          console.error('Invalid Spotify URL:', req.body.mediaUrl);
-          return res.status(400).json({ error: "Invalid Spotify URL" });
+        try {
+          console.log('Processing Spotify URL:', req.body.mediaUrl);
+          const url = req.body.mediaUrl;
+          let trackId = null;
+
+          if (url.includes('spotify.com/track/')) {
+            const match = url.match(/track\/([a-zA-Z0-9]+)/);
+            if (match && match[1]) {
+              trackId = match[1].split(/[?#]/)[0]; // Remove query params and hash
+            }
+          } else if (url.includes('spotify:track:')) {
+            const match = url.match(/track:([a-zA-Z0-9]+)/);
+            if (match) {
+              trackId = match[1];
+            }
+          }
+
+          console.log('Extracted track ID:', trackId);
+
+          if (trackId) {
+            musicUrl = `https://open.spotify.com/embed/track/${trackId}`;
+            console.log('Processed Spotify URL:', musicUrl);
+          } else {
+            console.error('Invalid Spotify track ID');
+            return res.status(400).json({ error: "Invalid Spotify URL" });
+          }
+        } catch (error) {
+          console.error('Error processing Spotify URL:', error);
+          return res.status(400).json({ error: "Failed to process Spotify URL" });
         }
       }
+
+      console.log('Creating post with:', {
+        content: req.body.content,
+        postType,
+        videoUrl,
+        musicUrl,
+        groupId: req.params.id
+      });
 
       const post = await storage.createPost({
         content: req.body.content,
