@@ -55,16 +55,21 @@ export default function GroupPage() {
     retry: 3,
   });
 
-
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {
-      console.log('Attempting to create post:', data);
+      console.log('Creating post with data:', data);
       const response = await apiRequest("POST", `/api/groups/${groupId}/posts`, {
         content: data.content,
         postType: data.postType,
         mediaUrl: data.mediaUrl || null
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create post');
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -88,7 +93,12 @@ export default function GroupPage() {
   const joinGroupMutation = useMutation({
     mutationFn: async () => {
       console.log('Attempting to join group:', groupId);
-      await apiRequest("POST", `/api/groups/${groupId}/join`);
+      const response = await apiRequest("POST", `/api/groups/${groupId}/join`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to join group');
+      }
     },
     onSuccess: () => {
       // Invalidate both group and user groups queries

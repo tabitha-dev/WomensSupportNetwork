@@ -56,6 +56,62 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  async joinGroup(userId: number, groupId: number): Promise<void> {
+    try {
+      console.log('Storage: Joining group:', { userId, groupId });
+      await db.transaction(async (tx) => {
+        // First try to insert into user_groups
+        await tx
+          .insert(userGroups)
+          .values({ userId, groupId })
+          .onConflictDoNothing();
+
+        // Then try to insert into group_members
+        await tx
+          .insert(groupMembers)
+          .values({ userId, groupId, role: 'member' })
+          .onConflictDoNothing();
+      });
+      console.log('Storage: Successfully joined group');
+    } catch (error) {
+      console.error('Storage: Error joining group:', error);
+      throw error;
+    }
+  }
+
+  async getUserGroups(userId: number): Promise<Group[]> {
+    try {
+      console.log('Storage: Fetching groups for user:', userId);
+      const groupMemberships = await db
+        .select()
+        .from(groupMembers)
+        .where(eq(groupMembers.userId, userId));
+
+      if (!groupMemberships.length) {
+        console.log('Storage: No group memberships found');
+        return [];
+      }
+
+      const groupIds = groupMemberships.map(gm => gm.groupId).filter(id => id !== null) as number[];
+
+      if (!groupIds.length) {
+        console.log('Storage: No valid group IDs found');
+        return [];
+      }
+
+      const groups = await db
+        .select()
+        .from(groups)
+        .where(sql`${groups.id} IN (${sql.join(groupIds, ',')})`);
+
+      console.log('Storage: Found groups:', groups.length);
+      return groups;
+    } catch (error) {
+      console.error('Storage: Error fetching user groups:', error);
+      throw error;
+    }
+  }
+
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -149,33 +205,24 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async joinGroup(userId: number, groupId: number): Promise<void> {
-    await db.insert(groupMembers).values({ userId, groupId });
-  }
-
   async leaveGroup(userId: number, groupId: number): Promise<void> {
     await db.delete(groupMembers).where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId)));
   }
 
-  async getUserGroups(userId: number): Promise<Group[]> {
-    const groupMemberships = await db.select().from(groupMembers).where(eq(groupMembers.userId, userId));
-    const groupIds = groupMemberships.map((membership) => membership.groupId);
-    return db.select().from(groups).where(groupIds.length > 0 ? sql`id IN (${sql.join(groupIds, ',')})` : sql`id = -1`);
-  }
 
   async getPostComments(postId: number): Promise<(Comment & { user: User })[]> {
     return db.select({
       comments: { id: comments.id, content: comments.content, createdAt: comments.createdAt },
       user: { id: users.id, username: users.username },
     }).from(comments)
-    .innerJoin(users, eq(comments.userId, users.id))
-    .where(eq(comments.postId, postId));
+      .innerJoin(users, eq(comments.userId, users.id))
+      .where(eq(comments.postId, postId));
 
   }
 
   async createComment(userId: number, postId: number, content: string): Promise<Comment> {
-      const [comment] = await db.insert(comments).values({ userId, postId, content }).returning();
-      return comment;
+    const [comment] = await db.insert(comments).values({ userId, postId, content }).returning();
+    return comment;
   }
 
   async likePost(userId: number, postId: number): Promise<void> {
@@ -210,8 +257,8 @@ export class DatabaseStorage implements IStorage {
         sender: {id: users.id, username: users.username},
         status: friendRequests.status
     }).from(friendRequests)
-    .innerJoin(users, eq(friendRequests.senderId, users.id))
-    .where(eq(friendRequests.receiverId, userId));
+      .innerJoin(users, eq(friendRequests.senderId, users.id))
+      .where(eq(friendRequests.receiverId, userId));
   }
 
   async sendFriendRequest(senderId: number, receiverId: number): Promise<void> {
