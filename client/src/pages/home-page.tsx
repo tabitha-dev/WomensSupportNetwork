@@ -56,31 +56,23 @@ export default function HomePage() {
 
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="w-full justify-start border-b rounded-none p-0 h-12">
-            <TabsTrigger 
-              key="all-tab"
-              value="all" 
-              className="data-[state=active]:border-b-2 border-primary rounded-none"
-            >
+            <TabsTrigger value="all" className="data-[state=active]:border-b-2 border-primary rounded-none">
               All Groups
             </TabsTrigger>
-            <TabsTrigger 
-              key="joined-tab"
-              value="joined" 
-              className="data-[state=active]:border-b-2 border-primary rounded-none"
-            >
+            <TabsTrigger value="joined" className="data-[state=active]:border-b-2 border-primary rounded-none">
               My Groups
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent key="all-content" value="all" className="mt-6">
+          <TabsContent value="all" className="mt-6">
             <div className="grid gap-8">
-              {groupsByCategory && Object.entries(groupsByCategory).map(([category, groups], index) => (
-                <div key={`category-${index}`} className="space-y-4">
+              {groupsByCategory && Object.entries(groupsByCategory).map(([category, groups]) => (
+                <div key={category} className="space-y-4">
                   <h2 className="text-2xl font-semibold text-foreground/90">{category}</h2>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {groups.map((group) => (
                       <GroupCard 
-                        key={`group-${group.id}`}
+                        key={group.id} 
                         group={group}
                         isJoined={userGroups?.some(g => g.id === group.id)}
                       />
@@ -91,7 +83,7 @@ export default function HomePage() {
             </div>
           </TabsContent>
 
-          <TabsContent key="joined-content" value="joined" className="mt-6">
+          <TabsContent value="joined" className="mt-6">
             {userGroups?.length === 0 ? (
               <Card className="glass-card border-none">
                 <CardContent className="p-8 text-center text-muted-foreground">
@@ -102,7 +94,7 @@ export default function HomePage() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {userGroups?.map((group) => (
                   <GroupCard 
-                    key={`joined-group-${group.id}`}
+                    key={group.id} 
                     group={group}
                     isJoined={true}
                   />

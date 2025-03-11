@@ -24,21 +24,9 @@ type PostProps = {
 
 function getYouTubeEmbedUrl(url: string) {
   try {
-    let videoId = '';
-
-    // Handle different YouTube URL formats
-    if (url.includes('youtu.be/')) {
-      videoId = url.split('youtu.be/')[1]?.split(/[?#]/)[0];
-    } else if (url.includes('youtube.com/watch')) {
-      videoId = new URL(url).searchParams.get('v') || '';
-    } else if (url.includes('youtube.com/shorts/')) {
-      videoId = url.split('shorts/')[1]?.split(/[?#]/)[0];
-    }
-
+    const videoId = url.split('v=')[1]?.split('&')[0];
     if (!videoId) return null;
-
-    // Add necessary parameters for proper embedding
-    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1`;
+    return `https://www.youtube.com/embed/${videoId}`;
   } catch {
     return null;
   }
@@ -175,8 +163,6 @@ export default function PostComponent({ post }: PostProps) {
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
                   />
                 </div>
               )}
