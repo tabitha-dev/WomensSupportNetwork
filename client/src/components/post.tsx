@@ -70,8 +70,8 @@ export default function PostComponent({ post }: PostProps) {
   });
 
   const updatePostMutation = useMutation({
-    mutationFn: async (content: string) => {
-      await apiRequest("PATCH", `/api/posts/${post.id}`, { content });
+    mutationFn: async () => {
+      await apiRequest("PATCH", `/api/posts/${post.id}`, { content: editedContent });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
@@ -90,8 +90,8 @@ export default function PostComponent({ post }: PostProps) {
   });
 
   const commentMutation = useMutation({
-    mutationFn: async (content: string) => {
-      await apiRequest("POST", `/api/posts/${post.id}/comments`, { content });
+    mutationFn: async () => {
+      await apiRequest("POST", `/api/posts/${post.id}/comments`, { content: newComment });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/comments`] });
@@ -112,9 +112,13 @@ export default function PostComponent({ post }: PostProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Avatar className="h-8 w-8">
-                <AvatarFallback>
-                  {author?.displayName.charAt(0).toUpperCase()}
-                </AvatarFallback>
+                {author?.avatarUrl ? (
+                  <img src={author.avatarUrl} alt={author.displayName} />
+                ) : (
+                  <AvatarFallback>
+                    {author?.displayName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{author?.displayName}</span>
@@ -155,7 +159,7 @@ export default function PostComponent({ post }: PostProps) {
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  onClick={() => updatePostMutation.mutate(editedContent)}
+                  onClick={() => updatePostMutation.mutate()}
                   disabled={updatePostMutation.isPending}
                 >
                   Save
@@ -207,7 +211,7 @@ export default function PostComponent({ post }: PostProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => likeMutation.mutate()}
-                  className={`hover-scale ${isLiked ? "text-red-500" : ""}`}
+                  className={`hover:scale-105 ${isLiked ? "text-red-500" : ""}`}
                 >
                   <Heart className={`h-4 w-4 mr-1 ${isLiked ? "fill-current" : ""}`} />
                   {post.likeCount || 0}
@@ -216,7 +220,7 @@ export default function PostComponent({ post }: PostProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowComments(!showComments)}
-                  className="hover-scale"
+                  className="hover:scale-105"
                 >
                   <MessageCircle className="h-4 w-4 mr-1" />
                   {comments.length}
@@ -241,7 +245,7 @@ export default function PostComponent({ post }: PostProps) {
                 />
                 <Button
                   size="icon"
-                  onClick={() => commentMutation.mutate(newComment)}
+                  onClick={() => commentMutation.mutate()}
                   disabled={!newComment.trim() || commentMutation.isPending}
                 >
                   <Send className="h-4 w-4" />

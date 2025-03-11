@@ -113,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add this endpoint after the other post-related endpoints
+  // Delete post
   app.delete("/api/posts/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
@@ -131,6 +131,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting post:", error);
       res.status(500).json({ error: "Failed to delete post" });
+    }
+  });
+
+  // Update post
+  app.patch("/api/posts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.id);
+      const post = await storage.updatePost(postId, req.user!.id, req.body.content);
+      if (!post) {
+        return res.status(404).json({ error: "Post not found or unauthorized" });
+      }
+      res.json(post);
+    } catch (error) {
+      console.error("Error updating post:", error);
+      res.status(500).json({ error: "Failed to update post" });
+    }
+  });
+
+  // Post comments
+  app.get("/api/posts/:id/comments", async (req, res) => {
+    try {
+      const comments = await storage.getPostComments(parseInt(req.params.id));
+      res.json(comments);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  });
+
+  app.post("/api/posts/:id/comments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const comment = await storage.createComment(
+        req.user!.id,
+        parseInt(req.params.id),
+        req.body.content
+      );
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      res.status(500).json({ error: "Failed to create comment" });
+    }
+  });
+
+  // Post likes
+  app.post("/api/posts/:id/like", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.id);
+      const isLiked = await storage.isPostLikedByUser(req.user!.id, postId);
+      if (isLiked) {
+        await storage.unlikePost(req.user!.id, postId);
+      } else {
+        await storage.likePost(req.user!.id, postId);
+      }
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error liking/unliking post:", error);
+      res.status(500).json({ error: "Failed to like/unlike post" });
+    }
+  });
+
+  app.get("/api/posts/:id/liked", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const isLiked = await storage.isPostLikedByUser(
+        req.user!.id,
+        parseInt(req.params.id)
+      );
+      res.json(isLiked);
+    } catch (error) {
+      console.error("Error checking if post is liked:", error);
+      res.status(500).json({ error: "Failed to check if post is liked" });
     }
   });
 
