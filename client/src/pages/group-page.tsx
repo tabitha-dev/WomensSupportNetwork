@@ -13,15 +13,17 @@ import {
   Send,
   Users,
   Image as ImageIcon,
+  Music,
   MessageSquare,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
 type PostFormData = {
   content: string;
-  postType: "text" | "image";
+  postType: "text" | "image" | "music";
   mediaUrl?: string;
 };
 
@@ -55,7 +57,7 @@ export default function GroupPage() {
     retry: 3,
   });
 
-  // Create post mutation
+  // All mutations defined at the top level
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {
       console.log('Creating post with data:', data);
@@ -92,28 +94,20 @@ export default function GroupPage() {
 
   const joinGroupMutation = useMutation({
     mutationFn: async () => {
-      console.log('Attempting to join group:', groupId);
-      const response = await apiRequest("POST", `/api/groups/${groupId}/join`);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to join group');
-      }
+      await apiRequest("POST", `/api/groups/${groupId}/join`);
     },
     onSuccess: () => {
-      // Invalidate both group and user groups queries
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/groups"] });
       toast({
         title: "Success",
         description: "Successfully joined the group!",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       console.error("Failed to join group:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to join group. Please try again.",
+        description: "Failed to join group. Please try again.",
         variant: "destructive",
       });
     },
@@ -121,21 +115,17 @@ export default function GroupPage() {
 
   const sendChatMessageMutation = useMutation({
     mutationFn: async (data: ChatFormData) => {
-      const response = await apiRequest("POST", `/api/groups/${groupId}/chat`, data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send message');
-      }
+      await apiRequest("POST", `/api/groups/${groupId}/chat`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
       chatForm.reset();
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       console.error("Failed to send message:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to send message. Please try again.",
+        description: "Failed to send message. Please try again.",
         variant: "destructive",
       });
     },
@@ -226,9 +216,6 @@ export default function GroupPage() {
                   onClick={() => joinGroupMutation.mutate()}
                   disabled={joinGroupMutation.isPending}
                 >
-                  {joinGroupMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
                   Join Group
                 </Button>
               )}
@@ -264,6 +251,13 @@ export default function GroupPage() {
                       >
                         <ImageIcon className="h-4 w-4" />
                       </Button>
+                      <Button
+                        type="button"
+                        variant={postForm.watch("postType") === "music" ? "default" : "outline"}
+                        onClick={() => postForm.setValue("postType", "music")}
+                      >
+                        <Music className="h-4 w-4" />
+                      </Button>
                     </div>
 
                     <Textarea
@@ -271,9 +265,10 @@ export default function GroupPage() {
                       {...postForm.register("content")}
                     />
 
-                    {postForm.watch("postType") === "image" && (
+                    {(postForm.watch("postType") === "image" ||
+                      postForm.watch("postType") === "music") && (
                       <Input
-                        placeholder="Enter image URL"
+                        placeholder={`Enter ${postForm.watch("postType")} URL`}
                         {...postForm.register("mediaUrl")}
                       />
                     )}
@@ -283,9 +278,6 @@ export default function GroupPage() {
                       disabled={createPostMutation.isPending}
                       className="w-full"
                     >
-                      {createPostMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
                       Post
                     </Button>
                   </form>
@@ -318,9 +310,6 @@ export default function GroupPage() {
                   onClick={() => joinGroupMutation.mutate()}
                   disabled={joinGroupMutation.isPending}
                 >
-                  {joinGroupMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
                   Join Group
                 </Button>
               </CardContent>
@@ -407,11 +396,7 @@ export default function GroupPage() {
                     type="submit"
                     disabled={sendChatMessageMutation.isPending}
                   >
-                    {sendChatMessageMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
+                    <Send className="h-4 w-4" />
                   </Button>
                 </form>
               </CardContent>

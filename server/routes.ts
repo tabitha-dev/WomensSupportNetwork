@@ -7,7 +7,65 @@ import fs from "fs/promises";
 import path from "path";
 import express from "express";
 
-// Helper functions for URL processing (Removed)
+// Helper functions for URL processing
+function extractYouTubeVideoId(url: string): string | null {
+  try {
+    console.log('YouTube URL processing input:', url);
+
+    if (!url) {
+      console.log('Empty URL provided');
+      return null;
+    }
+
+    const urlParts = url.split('youtu.be/');
+    if (urlParts.length !== 2) {
+      console.log('Invalid URL format - expected youtu.be/ pattern');
+      return null;
+    }
+
+    // Get the part after youtu.be/
+    let videoId = urlParts[1];
+
+    // Remove any query parameters or hash
+    videoId = videoId.split('?')[0].split('#')[0];
+
+    console.log('Extracted video ID:', videoId);
+
+    if (!videoId || videoId.length === 0) {
+      console.log('Empty video ID after extraction');
+      return null;
+    }
+
+    return videoId;
+  } catch (error) {
+    console.error('Error in extractYouTubeVideoId:', error);
+    return null;
+  }
+}
+
+function extractSpotifyTrackId(url: string): string | null {
+  try {
+    console.log('Spotify URL processing input:', url);
+
+    if (!url || !url.includes('spotify.com/track/')) {
+      console.log('Invalid Spotify URL format');
+      return null;
+    }
+
+    const match = url.match(/track\/([a-zA-Z0-9]+)/);
+    if (!match || !match[1]) {
+      console.log('Could not extract track ID');
+      return null;
+    }
+
+    const trackId = match[1].split('?')[0];
+    console.log('Extracted track ID:', trackId);
+    return trackId;
+  } catch (error) {
+    console.error('Error in extractSpotifyTrackId:', error);
+    return null;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create upload directories if they don't exist
@@ -48,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      console.log('Creating post:', req.body);
+      console.log('Received post creation request:', req.body);
       const { content, postType, mediaUrl } = req.body;
 
       if (!content) {
@@ -59,22 +117,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Post type is required" });
       }
 
+      let processedVideoUrl = null;
+      let processedMusicUrl = null;
+      let processedImageUrl = null;
+
+      if (postType === "video" && mediaUrl) {
+        console.log('Processing video URL:', mediaUrl);
+        const videoId = extractYouTubeVideoId(mediaUrl);
+
+        if (!videoId) {
+          console.error('Failed to extract video ID from:', mediaUrl);
+          return res.status(400).json({
+            error: "Invalid YouTube URL",
+            details: "Could not extract video ID from the provided URL"
+          });
+        }
+
+        processedVideoUrl = `https://www.youtube.com/embed/${videoId}`;
+        console.log('Final video URL:', processedVideoUrl);
+      }
+
+      if (postType === "music" && mediaUrl) {
+        console.log('Processing music URL:', mediaUrl);
+        const trackId = extractSpotifyTrackId(mediaUrl);
+
+        if (!trackId) {
+          console.error('Failed to extract track ID from:', mediaUrl);
+          return res.status(400).json({
+            error: "Invalid Spotify URL",
+            details: "Could not extract track ID from the provided URL"
+          });
+        }
+
+        processedMusicUrl = `https://open.spotify.com/embed/track/${trackId}`;
+        console.log('Final music URL:', processedMusicUrl);
+      }
+
+      if (postType === "image") {
+        processedImageUrl = mediaUrl;
+      }
+
+      console.log('Creating post with processed URLs:', {
+        videoUrl: processedVideoUrl,
+        musicUrl: processedMusicUrl,
+        imageUrl: processedImageUrl
+      });
+
       const post = await storage.createPost({
         content,
         userId: req.user!.id,
         groupId: parseInt(req.params.id),
         postType,
-        imageUrl: postType === "image" ? mediaUrl : null,
-        musicUrl: null,
-        videoUrl: null,
+        imageUrl: processedImageUrl,
+        musicUrl: processedMusicUrl,
+        videoUrl: processedVideoUrl,
         likeCount: 0,
       });
 
-      console.log('Created post:', post);
+      console.log('Successfully created post:', post);
       res.status(201).json(post);
     } catch (error) {
       console.error("Error creating post:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to create post",
         details: error instanceof Error ? error.message : "Unknown error occurred"
       });
@@ -114,6 +218,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Group not found" });
       }
 
+      console.log('Routes: Sending complete group response:', {
+        id: group.id,
+        name: group.name,
+        memberCount: group.members?.length || 0,
+        postCount: group.posts?.length || 0,
+        messageCount: group.chatMessages?.length || 0
+      });
+
       res.json(group);
     } catch (error) {
       console.error('Routes: Error in group fetch:', error);
@@ -131,6 +243,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching group posts:", error);
       res.status(500).json({ error: "Failed to fetch posts" });
+    }
+  });
+
+  app.post("/api/groups/:groupId/posts/music", upload.single("music"), async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const musicUrl = `/uploads/music/${req.file.filename}`;
+      const post = await storage.createPost({
+        content: req.body.content || "Shared a music track",
+        userId: req.user!.id,
+        groupId: parseInt(req.params.groupId),
+        postType: "music",
+        musicUrl,
+        imageUrl: null,
+        videoUrl: null,
+        likeCount: 0,
+      });
+
+      res.status(201).json(post);
+    } catch (error) {
+      console.error("Error uploading music:", error);
+      res.status(500).json({ error: "Failed to upload music" });
+    }
+  });
+
+
+  // Add delete post endpoint
+  app.delete("/api/posts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.id);
+      const deleted = await storage.deletePost(postId, req.user!.id);
+
+      if (!deleted) {
+        return res.status(404).json({ error: "Post not found or unauthorized" });
+      }
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      res.status(500).json({ error: "Failed to delete post" });
     }
   });
 
@@ -172,38 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to leave group" });
     }
   });
-  app.delete("/api/posts/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
 
-    try {
-      const postId = parseInt(req.params.id);
-      const deleted = await storage.deletePost(postId, req.user!.id);
-
-      if (!deleted) {
-        return res.status(404).json({ error: "Post not found or unauthorized" });
-      }
-
-      res.sendStatus(200);
-    } catch (error) {
-      console.error("Error deleting post:", error);
-      res.status(500).json({ error: "Failed to delete post" });
-    }
-  });
-
-  app.get("/api/user/groups", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-      const groups = await storage.getUserGroups(req.user!.id);
-      res.json(groups);
-    } catch (error) {
-      console.error("Error fetching user groups:", error);
-      res.status(500).json({ error: "Failed to fetch user groups" });
-    }
-  });
   app.patch("/api/posts/:id", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
