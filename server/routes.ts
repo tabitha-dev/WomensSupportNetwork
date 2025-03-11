@@ -7,6 +7,44 @@ import fs from "fs/promises";
 import path from "path";
 import express from "express";
 
+// Helper functions for URL processing
+function extractYouTubeVideoId(url: string): string | null {
+  try {
+    if (!url) return null;
+
+    // Handle youtu.be URLs
+    if (url.includes('youtu.be/')) {
+      const parts = url.split('youtu.be/');
+      if (parts.length < 2) return null;
+
+      // Extract the ID and remove any query parameters
+      const videoId = parts[1].split('?')[0].split('&')[0];
+      return videoId || null;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error extracting YouTube ID:', error);
+    return null;
+  }
+}
+
+function extractSpotifyTrackId(url: string): string | null {
+  try {
+    if (!url) return null;
+
+    if (url.includes('spotify.com/track/')) {
+      const match = url.match(/track\/([a-zA-Z0-9]+)/);
+      if (match && match[1]) {
+        return match[1].split('?')[0];
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error extracting Spotify track ID:', error);
+    return null;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create upload directories if they don't exist
   await fs.mkdir("uploads/music", { recursive: true });
@@ -40,32 +78,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/groups/:groupId/posts/music", upload.single("music"), async (req, res) => {
+  app.post("/api/groups/:id/posts", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
+      const { content, postType, mediaUrl } = req.body;
+      console.log('Received post request:', { content, postType, mediaUrl });
+
+      let processedVideoUrl = null;
+      let processedMusicUrl = null;
+      let processedImageUrl = null;
+
+      if (postType === "video" && mediaUrl) {
+        const videoId = extractYouTubeVideoId(mediaUrl);
+        if (!videoId) {
+          console.error('Failed to extract video ID from URL:', mediaUrl);
+          return res.status(400).json({ 
+            error: "Invalid YouTube URL",
+            details: "Please provide a valid youtu.be URL"
+          });
+        }
+        processedVideoUrl = `https://www.youtube.com/embed/${videoId}`;
+        console.log('Processed video URL:', processedVideoUrl);
       }
 
-      const musicUrl = `/uploads/music/${req.file.filename}`;
+      if (postType === "music" && mediaUrl) {
+        const trackId = extractSpotifyTrackId(mediaUrl);
+        if (!trackId) {
+          console.error('Failed to extract track ID from URL:', mediaUrl);
+          return res.status(400).json({ 
+            error: "Invalid Spotify URL",
+            details: "Please provide a valid Spotify track URL"
+          });
+        }
+        processedMusicUrl = `https://open.spotify.com/embed/track/${trackId}`;
+        console.log('Processed music URL:', processedMusicUrl);
+      }
+
+      if (postType === "image") {
+        processedImageUrl = mediaUrl;
+      }
+
       const post = await storage.createPost({
-        content: req.body.content || "Shared a music track",
+        content,
         userId: req.user!.id,
-        groupId: parseInt(req.params.groupId),
-        postType: "music",
-        musicUrl,
-        imageUrl: null,
-        videoUrl: null,
+        groupId: parseInt(req.params.id),
+        postType,
+        imageUrl: processedImageUrl,
+        musicUrl: processedMusicUrl,
+        videoUrl: processedVideoUrl,
         likeCount: 0,
       });
 
+      console.log('Successfully created post:', post);
       res.status(201).json(post);
     } catch (error) {
-      console.error("Error uploading music:", error);
-      res.status(500).json({ error: "Failed to upload music" });
+      console.error("Error creating post:", error);
+      res.status(500).json({ 
+        error: "Failed to create post",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -130,115 +204,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/groups/:id/posts", async (req, res) => {
+  app.post("/api/groups/:groupId/posts/music", upload.single("music"), async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     try {
-      console.log('Creating post with data:', req.body);
-      let postType = req.body.postType;
-      let videoUrl = null;
-      let musicUrl = null;
-
-      // Handle YouTube URLs
-      if (postType === "video" && req.body.mediaUrl) {
-        try {
-          console.log('Processing YouTube URL:', req.body.mediaUrl);
-          const originalUrl = req.body.mediaUrl;
-          let videoId = null;
-
-          // Extract video ID from youtu.be URLs
-          if (originalUrl.includes('youtu.be/')) {
-            // Handle youtu.be URLs
-            const urlParts = originalUrl.split('youtu.be/');
-            if (urlParts.length > 1) {
-              // Get everything after youtu.be/ and before any query parameters
-              videoId = urlParts[1].split('?')[0].split('#')[0];
-              console.log('Extracted video ID from youtu.be URL:', videoId);
-            }
-          } else if (originalUrl.includes('youtube.com')) {
-            // Handle youtube.com URLs
-            try {
-              const url = new URL(originalUrl);
-              videoId = url.searchParams.get('v');
-              console.log('Extracted video ID from youtube.com URL:', videoId);
-            } catch (urlError) {
-              console.error('Error parsing YouTube URL:', urlError);
-            }
-          }
-
-          if (!videoId) {
-            console.error('Could not extract video ID from:', originalUrl);
-            return res.status(400).json({ error: "Could not extract video ID from URL" });
-          }
-
-          // Clean the video ID
-          videoId = videoId.trim();
-          console.log('Final video ID:', videoId);
-
-          videoUrl = `https://www.youtube.com/embed/${videoId}`;
-          console.log('Final YouTube embed URL:', videoUrl);
-        } catch (error) {
-          console.error('Error processing YouTube URL:', error);
-          return res.status(400).json({ error: `Failed to process YouTube URL: ${error.message}` });
-        }
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // Handle Spotify URLs
-      if (postType === "music" && req.body.mediaUrl) {
-        try {
-          console.log('Processing Spotify URL:', req.body.mediaUrl);
-          const originalUrl = req.body.mediaUrl;
-          let trackId = null;
-
-          if (originalUrl.includes('open.spotify.com/track/')) {
-            const match = originalUrl.match(/track\/([a-zA-Z0-9]+)/);
-            if (match && match[1]) {
-              trackId = match[1].split('?')[0];
-              console.log('Extracted track ID:', trackId);
-            }
-          }
-
-          if (!trackId) {
-            console.error('Could not extract track ID from:', originalUrl);
-            return res.status(400).json({ error: "Could not extract track ID from URL" });
-          }
-
-          musicUrl = `https://open.spotify.com/embed/track/${trackId}`;
-          console.log('Final Spotify embed URL:', musicUrl);
-        } catch (error) {
-          console.error('Error processing Spotify URL:', error);
-          return res.status(400).json({ error: `Failed to process Spotify URL: ${error.message}` });
-        }
-      }
-
-      console.log('Creating post with:', {
-        content: req.body.content,
-        postType,
-        videoUrl,
-        musicUrl,
-        groupId: req.params.id
-      });
-
+      const musicUrl = `/uploads/music/${req.file.filename}`;
       const post = await storage.createPost({
-        content: req.body.content,
+        content: req.body.content || "Shared a music track",
         userId: req.user!.id,
-        groupId: parseInt(req.params.id),
-        postType,
-        imageUrl: postType === "image" ? req.body.mediaUrl : null,
+        groupId: parseInt(req.params.groupId),
+        postType: "music",
         musicUrl,
-        videoUrl,
+        imageUrl: null,
+        videoUrl: null,
         likeCount: 0,
       });
 
-      console.log('Created post:', post);
       res.status(201).json(post);
     } catch (error) {
-      console.error("Error creating post:", error);
-      res.status(500).json({ error: "Failed to create post" });
+      console.error("Error uploading music:", error);
+      res.status(500).json({ error: "Failed to upload music" });
     }
   });
+
 
   // Add delete post endpoint
   app.delete("/api/posts/:id", async (req, res) => {
