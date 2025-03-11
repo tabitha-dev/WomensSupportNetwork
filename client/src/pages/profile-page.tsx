@@ -304,30 +304,35 @@ export default function ProfilePage() {
           <Tabs defaultValue="posts" className="mt-6">
             <TabsList className="w-full justify-start border-b rounded-none p-0 h-12">
               <TabsTrigger
+                key="posts-tab"
                 value="posts"
                 className="data-[state=active]:border-b-2 border-primary rounded-none"
               >
                 Posts
               </TabsTrigger>
               <TabsTrigger
+                key="about-tab"
                 value="about"
                 className="data-[state=active]:border-b-2 border-primary rounded-none"
               >
                 About
               </TabsTrigger>
               <TabsTrigger
+                key="friends-tab"
                 value="friends"
                 className="data-[state=active]:border-b-2 border-primary rounded-none"
               >
                 Friends
               </TabsTrigger>
               <TabsTrigger
+                key="groups-tab"
                 value="groups"
                 className="data-[state=active]:border-b-2 border-primary rounded-none"
               >
                 Groups
               </TabsTrigger>
               <TabsTrigger
+                key="profile-tab"
                 value="profile"
                 className="data-[state=active]:border-b-2 border-primary rounded-none"
               >
@@ -335,10 +340,10 @@ export default function ProfilePage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="posts" className="mt-6">
+            <TabsContent key="posts-content" value="posts" className="mt-6">
               <div className="space-y-4">
                 {posts.map((post) => (
-                  <PostComponent key={post.id} post={post} />
+                  <PostComponent key={`post-${post.id}`} post={post} />
                 ))}
                 {posts.length === 0 && (
                   <Card>
@@ -350,7 +355,7 @@ export default function ProfilePage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="about" className="mt-6">
+            <TabsContent key="about-content" value="about" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle>About Me</CardTitle>
@@ -380,10 +385,10 @@ export default function ProfilePage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="friends" className="mt-6">
+            <TabsContent key="friends-content" value="friends" className="mt-6">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {friends.map((friend) => (
-                  <Card key={friend.id}>
+                  <Card key={`friend-${friend.id}`}>
                     <CardContent className="p-4 flex items-center gap-4">
                       <Avatar>
                         <AvatarFallback>
@@ -409,10 +414,10 @@ export default function ProfilePage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="groups" className="mt-6">
+            <TabsContent key="groups-content" value="groups" className="mt-6">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {userGroups.map((group) => (
-                  <Card key={group.id}>
+                  <Card key={`group-${group.id}`}>
                     <CardContent className="p-4">
                       <h3 className="font-medium mb-1">{group.name}</h3>
                       <p className="text-sm text-muted-foreground">
@@ -431,7 +436,7 @@ export default function ProfilePage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="profile" className="mt-6">
+            <TabsContent key="profile-content" value="profile" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Profile Settings</CardTitle>
