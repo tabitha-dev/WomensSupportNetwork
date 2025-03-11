@@ -93,7 +93,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid group ID" });
       }
 
-      // Get the group with all related data
       const group = await storage.getGroupById(groupId);
       console.log('Routes: Group fetch result:', group);
 
@@ -136,6 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log('Creating post with data:', req.body);
       let postType = req.body.postType;
       let videoUrl = null;
       let musicUrl = null;
@@ -144,21 +144,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (postType === "video" && req.body.mediaUrl) {
         // Extract video ID from various YouTube URL formats
         const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+        let videoId;
         const match = req.body.mediaUrl.match(youtubeRegex);
         if (match && match[1]) {
-          videoUrl = `https://www.youtube.com/embed/${match[1]}`;
+          videoId = match[1];
         } else {
+          // Try handling shortened YouTube URLs
+          const shortUrlRegex = /youtu\.be\/([^?]+)/;
+          const shortMatch = req.body.mediaUrl.match(shortUrlRegex);
+          if (shortMatch && shortMatch[1]) {
+            videoId = shortMatch[1];
+          }
+        }
+
+        if (videoId) {
+          videoUrl = `https://www.youtube.com/embed/${videoId}`;
+          console.log('Processed YouTube URL:', videoUrl);
+        } else {
+          console.error('Invalid YouTube URL:', req.body.mediaUrl);
           return res.status(400).json({ error: "Invalid YouTube URL" });
         }
       }
 
       // Handle Spotify URLs
       if (postType === "music" && req.body.mediaUrl) {
-        const spotifyRegex = /spotify:track:|open\.spotify\.com\/track\/([a-zA-Z0-9]+)/;
+        const spotifyRegex = /(?:spotify:track:|open\.spotify\.com\/track\/)([a-zA-Z0-9]+)(?:\?|$)/;
         const match = req.body.mediaUrl.match(spotifyRegex);
         if (match && match[1]) {
           musicUrl = `https://open.spotify.com/embed/track/${match[1]}`;
+          console.log('Processed Spotify URL:', musicUrl);
         } else {
+          console.error('Invalid Spotify URL:', req.body.mediaUrl);
           return res.status(400).json({ error: "Invalid Spotify URL" });
         }
       }
@@ -174,6 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         likeCount: 0,
       });
 
+      console.log('Created post:', post);
       res.status(201).json(post);
     } catch (error) {
       console.error("Error creating post:", error);
