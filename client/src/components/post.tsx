@@ -24,22 +24,21 @@ type PostProps = {
 
 function getYouTubeEmbedUrl(url: string) {
   try {
-    // Handle different YouTube URL formats
     let videoId = '';
 
+    // Handle different YouTube URL formats
     if (url.includes('youtu.be/')) {
-      // Handle short URLs
-      videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      videoId = url.split('youtu.be/')[1]?.split(/[?#]/)[0];
     } else if (url.includes('youtube.com/watch')) {
-      // Handle regular URLs
-      videoId = url.split('v=')[1]?.split('&')[0];
+      videoId = new URL(url).searchParams.get('v') || '';
     } else if (url.includes('youtube.com/shorts/')) {
-      // Handle YouTube shorts
-      videoId = url.split('shorts/')[1]?.split('?')[0];
+      videoId = url.split('shorts/')[1]?.split(/[?#]/)[0];
     }
 
     if (!videoId) return null;
-    return `https://www.youtube-nocookie.com/embed/${videoId}`;
+
+    // Add necessary parameters for proper embedding
+    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1`;
   } catch {
     return null;
   }
