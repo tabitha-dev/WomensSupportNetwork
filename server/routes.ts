@@ -220,6 +220,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user data
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const user = await storage.getUser(parseInt(req.params.id));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      const { password, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

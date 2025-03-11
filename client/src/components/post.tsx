@@ -51,7 +51,7 @@ export default function PostComponent({ post }: PostProps) {
     queryKey: [`/api/users/${post.userId}`],
   });
 
-  const { data: comments = [] } = useQuery({
+  const { data: comments = [], isLoading: isLoadingComments } = useQuery({
     queryKey: [`/api/posts/${post.id}/comments`],
     enabled: showComments,
   });
@@ -65,7 +65,11 @@ export default function PostComponent({ post }: PostProps) {
       await apiRequest("DELETE", `/api/posts/${post.id}`);
     },
     onSuccess: () => {
+      // Invalidate both group posts and user posts queries
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
+      if (author) {
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${author.id}/posts`] });
+      }
     },
   });
 
@@ -75,6 +79,9 @@ export default function PostComponent({ post }: PostProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
+      if (author) {
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${author.id}/posts`] });
+      }
       setIsEditing(false);
     },
   });
@@ -84,6 +91,7 @@ export default function PostComponent({ post }: PostProps) {
       await apiRequest("POST", `/api/posts/${post.id}/like`);
     },
     onSuccess: () => {
+      // Invalidate both the like status and the group posts to update counts
       queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/liked`] });
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
     },
@@ -116,7 +124,7 @@ export default function PostComponent({ post }: PostProps) {
                   <img src={author.avatarUrl} alt={author.displayName} />
                 ) : (
                   <AvatarFallback>
-                    {author?.displayName.charAt(0).toUpperCase()}
+                    {author?.displayName?.charAt(0).toUpperCase() || 'U'}
                   </AvatarFallback>
                 )}
               </Avatar>
@@ -251,36 +259,40 @@ export default function PostComponent({ post }: PostProps) {
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="space-y-2">
-                {comments.map((comment) => (
-                  <motion.div
-                    key={`comment-${comment.id}`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex items-start gap-2 p-2 rounded-lg bg-muted/50"
-                  >
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback>
-                        {comment.user.displayName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-sm font-medium">
-                          {comment.user.displayName}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.createdAt), {
-                            addSuffix: true,
-                          })}
-                        </span>
+              {isLoadingComments ? (
+                <div>Loading comments...</div>
+              ) : (
+                <div className="space-y-2">
+                  {comments.map((comment) => (
+                    <motion.div
+                      key={`comment-${comment.id}`}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex items-start gap-2 p-2 rounded-lg bg-muted/50"
+                    >
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback>
+                          {comment.user.displayName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-sm font-medium">
+                            {comment.user.displayName}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(comment.createdAt), {
+                              addSuffix: true,
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm">{comment.content}</p>
                       </div>
-                      <p className="text-sm">{comment.content}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
         </CardContent>
