@@ -13,8 +13,8 @@ import {
   Send,
   Users,
   Image as ImageIcon,
-  Music,
   MessageSquare,
+  Video,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 
 type PostFormData = {
   content: string;
-  postType: "text" | "image" | "music";
+  postType: "text" | "image" | "video";
   mediaUrl?: string;
 };
 
@@ -50,14 +50,12 @@ export default function GroupPage() {
     },
   });
 
-  // Query for fetching group data
   const { data: group, isLoading, error } = useQuery<GroupWithRelations>({
     queryKey: [`/api/groups/${groupId}`],
     enabled: !isNaN(groupId),
     retry: 3,
   });
 
-  // All mutations defined at the top level
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {
       await apiRequest("POST", `/api/groups/${groupId}/posts`, data);
@@ -119,7 +117,6 @@ export default function GroupPage() {
     },
   });
 
-  // Handle loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -128,7 +125,6 @@ export default function GroupPage() {
     );
   }
 
-  // Handle error state
   if (error) {
     return (
       <Card className="mt-8">
@@ -142,7 +138,6 @@ export default function GroupPage() {
     );
   }
 
-  // Handle missing group data
   if (!group) {
     return (
       <Card className="mt-8">
@@ -160,7 +155,6 @@ export default function GroupPage() {
 
   return (
     <div className="space-y-6">
-      {/* Group Header */}
       <div className="relative h-48 rounded-lg overflow-hidden bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20">
         {group.coverUrl && (
           <img
@@ -191,10 +185,8 @@ export default function GroupPage() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="space-y-6">
-          {/* Description Card */}
           <Card>
             <CardContent className="p-6">
               <p className="text-lg">{group.description}</p>
@@ -212,7 +204,6 @@ export default function GroupPage() {
 
           {isGroupMember ? (
             <>
-              {/* Create Post */}
               <Card>
                 <CardHeader>
                   <CardTitle>Create Post</CardTitle>
@@ -241,10 +232,10 @@ export default function GroupPage() {
                       </Button>
                       <Button
                         type="button"
-                        variant={postForm.watch("postType") === "music" ? "default" : "outline"}
-                        onClick={() => postForm.setValue("postType", "music")}
+                        variant={postForm.watch("postType") === "video" ? "default" : "outline"}
+                        onClick={() => postForm.setValue("postType", "video")}
                       >
-                        <Music className="h-4 w-4" />
+                        <Video className="h-4 w-4" />
                       </Button>
                     </div>
 
@@ -254,9 +245,13 @@ export default function GroupPage() {
                     />
 
                     {(postForm.watch("postType") === "image" ||
-                      postForm.watch("postType") === "music") && (
+                      postForm.watch("postType") === "video") && (
                       <Input
-                        placeholder={`Enter ${postForm.watch("postType")} URL`}
+                        placeholder={
+                          postForm.watch("postType") === "video"
+                            ? "Enter YouTube video URL"
+                            : "Enter image URL"
+                        }
                         {...postForm.register("mediaUrl")}
                       />
                     )}
@@ -272,7 +267,6 @@ export default function GroupPage() {
                 </CardContent>
               </Card>
 
-              {/* Posts */}
               {group.posts?.map((post) => (
                 <PostComponent key={post.id} post={post} />
               ))}
@@ -305,9 +299,7 @@ export default function GroupPage() {
           )}
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
-          {/* Members */}
           <Card>
             <CardHeader>
               <CardTitle>Members ({group.members?.length || 0})</CardTitle>
@@ -337,7 +329,6 @@ export default function GroupPage() {
             </CardContent>
           </Card>
 
-          {/* Group Chat */}
           {isGroupMember && (
             <Card>
               <CardHeader>

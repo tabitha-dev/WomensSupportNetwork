@@ -7,12 +7,12 @@ import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { 
-  Heart, 
+import {
+  Heart,
   MessageCircle,
   Send,
   Image as ImageIcon,
-  Music
+  Video,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +21,16 @@ import { motion } from "framer-motion";
 type PostProps = {
   post: Post;
 };
+
+function getYouTubeEmbedUrl(url: string) {
+  try {
+    const videoId = url.split('v=')[1]?.split('&')[0];
+    if (!videoId) return null;
+    return `https://www.youtube.com/embed/${videoId}`;
+  } catch {
+    return null;
+  }
+}
 
 export default function PostComponent({ post }: PostProps) {
   const { user: currentUser } = useAuth();
@@ -135,24 +145,25 @@ export default function PostComponent({ post }: PostProps) {
             <div>
               <p className="whitespace-pre-wrap">{post.content}</p>
 
-              {/* Handle image posts */}
               {post.postType === "image" && post.imageUrl && (
                 <div className="mt-4 relative aspect-video rounded-lg overflow-hidden">
-                  <img 
-                    src={post.imageUrl} 
-                    alt="Post attachment" 
+                  <img
+                    src={post.imageUrl}
+                    alt="Post attachment"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                 </div>
               )}
 
-              {/* Handle music posts */}
-              {post.postType === "music" && post.musicUrl && (
-                <div className="mt-4">
-                  <audio controls className="w-full">
-                    <source src={post.musicUrl} type="audio/mpeg" />
-                    Your browser does not support the audio element.
-                  </audio>
+              {post.postType === "video" && post.videoUrl && (
+                <div className="mt-4 aspect-video">
+                  <iframe
+                    src={getYouTubeEmbedUrl(post.videoUrl) || post.videoUrl}
+                    title="YouTube video"
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
                 </div>
               )}
 
@@ -180,7 +191,7 @@ export default function PostComponent({ post }: PostProps) {
           )}
 
           {showComments && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               transition={{ duration: 0.3 }}

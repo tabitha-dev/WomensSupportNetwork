@@ -121,12 +121,6 @@ export class DatabaseStorage implements IStorage {
           .orderBy(asc(groupChat.createdAt))
       ]);
 
-      console.log('Storage: Related data fetched:', {
-        postsCount: groupPostsData.length,
-        membersCount: groupMembersData.length,
-        chatCount: chatMessagesData.length
-      });
-
       const groupWithRelations: GroupWithRelations = {
         ...group,
         posts: groupPostsData,
