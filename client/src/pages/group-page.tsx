@@ -13,18 +13,15 @@ import {
   Send,
   Users,
   Image as ImageIcon,
-  Music,
-  Video,
   MessageSquare,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
 type PostFormData = {
   content: string;
-  postType: "text" | "image" | "music" | "video";
+  postType: "text" | "image";
   mediaUrl?: string;
 };
 
@@ -58,37 +55,16 @@ export default function GroupPage() {
     retry: 3,
   });
 
-  // Helper function to detect URL type
-  const detectUrlType = (url: string): "video" | "music" | "image" => {
-    if (url.includes('youtu.be/') || url.includes('youtube.com/')) {
-      return "video";
-    }
-    if (url.includes('spotify.com/track/')) {
-      return "music";
-    }
-    return "image"; // Default to image for other URLs
-  };
 
-  // All mutations defined at the top level
+  // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (data: PostFormData) => {
-      // Automatically detect the correct post type based on the URL
-      if (data.mediaUrl) {
-        data.postType = detectUrlType(data.mediaUrl);
-      }
-
-      console.log('Creating post with data:', data);
+      console.log('Attempting to create post:', data);
       const response = await apiRequest("POST", `/api/groups/${groupId}/posts`, {
         content: data.content,
         postType: data.postType,
         mediaUrl: data.mediaUrl || null
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create post');
-      }
-
       return response.json();
     },
     onSuccess: () => {
@@ -111,14 +87,13 @@ export default function GroupPage() {
 
   const joinGroupMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/groups/${groupId}/join`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to join group');
-      }
+      console.log('Attempting to join group:', groupId);
+      await apiRequest("POST", `/api/groups/${groupId}/join`);
     },
     onSuccess: () => {
+      // Invalidate both group and user groups queries
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/groups"] });
       toast({
         title: "Success",
         description: "Successfully joined the group!",
@@ -279,20 +254,6 @@ export default function GroupPage() {
                       >
                         <ImageIcon className="h-4 w-4" />
                       </Button>
-                      <Button
-                        type="button"
-                        variant={postForm.watch("postType") === "music" ? "default" : "outline"}
-                        onClick={() => postForm.setValue("postType", "music")}
-                      >
-                        <Music className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={postForm.watch("postType") === "video" ? "default" : "outline"}
-                        onClick={() => postForm.setValue("postType", "video")}
-                      >
-                        <Video className="h-4 w-4" />
-                      </Button>
                     </div>
 
                     <Textarea
@@ -300,11 +261,9 @@ export default function GroupPage() {
                       {...postForm.register("content")}
                     />
 
-                    {(postForm.watch("postType") === "image" ||
-                      postForm.watch("postType") === "music" ||
-                      postForm.watch("postType") === "video") && (
+                    {postForm.watch("postType") === "image" && (
                       <Input
-                        placeholder={`Enter ${postForm.watch("postType")} URL`}
+                        placeholder="Enter image URL"
                         {...postForm.register("mediaUrl")}
                       />
                     )}

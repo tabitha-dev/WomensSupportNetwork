@@ -5,7 +5,7 @@ async function throwIfResNotOk(res: Response) {
     let errorMessage;
     try {
       const errorData = await res.json();
-      errorMessage = errorData.message || res.statusText;
+      errorMessage = errorData.error || errorData.details || res.statusText;
     } catch {
       errorMessage = res.statusText;
     }
@@ -24,7 +24,7 @@ export async function apiRequest(
       "Content-Type": "application/json",
     } : {},
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include", // Always include credentials
+    credentials: "include", // Essential for handling authentication
   });
 
   await throwIfResNotOk(res);
@@ -38,7 +38,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include", // Always include credentials
+      credentials: "include", // Essential for handling authentication
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -54,8 +54,8 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: true, // Enable this to keep auth state in sync
-      staleTime: 30000, // 30 seconds
+      refetchOnWindowFocus: true,
+      staleTime: 30000,
       retry: 1,
     },
     mutations: {
