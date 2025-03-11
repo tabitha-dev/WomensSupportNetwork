@@ -111,7 +111,11 @@ export default function GroupPage() {
 
   const joinGroupMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", `/api/groups/${groupId}/join`);
+      const response = await apiRequest("POST", `/api/groups/${groupId}/join`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to join group');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
@@ -120,11 +124,11 @@ export default function GroupPage() {
         description: "Successfully joined the group!",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Failed to join group:", error);
       toast({
         title: "Error",
-        description: "Failed to join group. Please try again.",
+        description: error.message || "Failed to join group. Please try again.",
         variant: "destructive",
       });
     },
@@ -132,17 +136,21 @@ export default function GroupPage() {
 
   const sendChatMessageMutation = useMutation({
     mutationFn: async (data: ChatFormData) => {
-      await apiRequest("POST", `/api/groups/${groupId}/chat`, data);
+      const response = await apiRequest("POST", `/api/groups/${groupId}/chat`, data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send message');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
       chatForm.reset();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Failed to send message:", error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description: error.message || "Failed to send message. Please try again.",
         variant: "destructive",
       });
     },
@@ -233,6 +241,9 @@ export default function GroupPage() {
                   onClick={() => joinGroupMutation.mutate()}
                   disabled={joinGroupMutation.isPending}
                 >
+                  {joinGroupMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
                   Join Group
                 </Button>
               )}
@@ -303,6 +314,9 @@ export default function GroupPage() {
                       disabled={createPostMutation.isPending}
                       className="w-full"
                     >
+                      {createPostMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
                       Post
                     </Button>
                   </form>
@@ -335,6 +349,9 @@ export default function GroupPage() {
                   onClick={() => joinGroupMutation.mutate()}
                   disabled={joinGroupMutation.isPending}
                 >
+                  {joinGroupMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
                   Join Group
                 </Button>
               </CardContent>
@@ -421,7 +438,11 @@ export default function GroupPage() {
                     type="submit"
                     disabled={sendChatMessageMutation.isPending}
                   >
-                    <Send className="h-4 w-4" />
+                    {sendChatMessageMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </Button>
                 </form>
               </CardContent>
