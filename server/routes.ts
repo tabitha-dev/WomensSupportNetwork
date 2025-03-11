@@ -9,7 +9,6 @@ import express from "express";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create upload directories if they don't exist
-  await fs.mkdir("uploads/music", { recursive: true });
   await fs.mkdir("uploads/avatars", { recursive: true });
 
   setupAuth(app);
@@ -40,34 +39,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/groups/:groupId/posts/music", upload.single("music"), async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const musicUrl = `/uploads/music/${req.file.filename}`;
-      const post = await storage.createPost({
-        content: req.body.content || "Shared a music track",
-        userId: req.user!.id,
-        groupId: parseInt(req.params.groupId),
-        postType: "music",
-        musicUrl,
-        imageUrl: null,
-        likeCount: 0,
-      });
-
-      res.status(201).json(post);
-    } catch (error) {
-      console.error("Error uploading music:", error);
-      res.status(500).json({ error: "Failed to upload music" });
-    }
-  });
-
   // Serve uploaded files
   app.use("/uploads", express.static("uploads"));
 
@@ -93,7 +64,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid group ID" });
       }
 
-      // Get the group with all related data
       const group = await storage.getGroupById(groupId);
       console.log('Routes: Group fetch result:', group);
 
@@ -142,8 +112,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId: parseInt(req.params.id),
         postType: req.body.postType,
         imageUrl: req.body.postType === "image" ? req.body.mediaUrl : null,
-        musicUrl: req.body.postType === "music" ? req.body.mediaUrl : null,
         videoUrl: req.body.postType === "video" ? req.body.mediaUrl : null,
+        musicUrl: null,
         likeCount: 0,
       });
 
