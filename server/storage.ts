@@ -9,7 +9,6 @@ import { pool } from "./db";
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
-  sessionStore: session.Store;
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -18,7 +17,6 @@ export interface IStorage {
   getGroupPosts(groupId: number): Promise<Post[]>;
   createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post>;
   updatePost(postId: number, userId: number, content: string): Promise<Post | undefined>;
-  deletePost(postId: number, userId: number): Promise<boolean>;
   joinGroup(userId: number, groupId: number): Promise<void>;
   leaveGroup(userId: number, groupId: number): Promise<void>;
   getUserGroups(userId: number): Promise<Group[]>;
@@ -27,6 +25,7 @@ export interface IStorage {
   likePost(userId: number, postId: number): Promise<void>;
   unlikePost(userId: number, postId: number): Promise<void>;
   isPostLikedByUser(userId: number, postId: number): Promise<boolean>;
+  sessionStore: session.Store;
   getUserPosts(userId: number): Promise<Post[]>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
   getFriends(userId: number): Promise<User[]>;
@@ -67,7 +66,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
@@ -79,7 +81,10 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Storage: Fetching group with ID:', id);
 
-      const [group] = await db.select().from(groups).where(eq(groups.id, id));
+      const [group] = await db
+        .select()
+        .from(groups)
+        .where(eq(groups.id, id));
 
       if (!group) {
         console.log('Storage: No group found with ID:', id);
@@ -89,9 +94,32 @@ export class DatabaseStorage implements IStorage {
       console.log('Storage: Found base group:', group);
 
       const [groupPostsData, groupMembersData, chatMessagesData] = await Promise.all([
-        db.select().from(posts).where(eq(posts.groupId, id)).orderBy(desc(posts.createdAt)),
-        db.select().from(groupMembers).where(eq(groupMembers.groupId, id)).orderBy(asc(groupMembers.joinedAt)),
-        db.select().from(groupChat).where(eq(groupChat.groupId, id)).orderBy(asc(groupChat.createdAt))
+        db
+          .select({
+            id: posts.id,
+            content: posts.content,
+            userId: posts.userId,
+            groupId: posts.groupId,
+            imageUrl: posts.imageUrl,
+            musicUrl: posts.musicUrl,
+            videoUrl: posts.videoUrl,
+            postType: posts.postType,
+            createdAt: posts.createdAt,
+            likeCount: posts.likeCount
+          })
+          .from(posts)
+          .where(eq(posts.groupId, id))
+          .orderBy(desc(posts.createdAt)),
+        db
+          .select()
+          .from(groupMembers)
+          .where(eq(groupMembers.groupId, id))
+          .orderBy(asc(groupMembers.joinedAt)),
+        db
+          .select()
+          .from(groupChat)
+          .where(eq(groupChat.groupId, id))
+          .orderBy(asc(groupChat.createdAt))
       ]);
 
       console.log('Storage: Related data fetched:', {
@@ -100,12 +128,14 @@ export class DatabaseStorage implements IStorage {
         chatCount: chatMessagesData.length
       });
 
-      return {
+      const groupWithRelations: GroupWithRelations = {
         ...group,
         posts: groupPostsData,
         members: groupMembersData,
         chatMessages: chatMessagesData
       };
+
+      return groupWithRelations;
     } catch (error) {
       console.error('Storage: Error in getGroupById:', error);
       throw error;
@@ -113,17 +143,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGroupPosts(groupId: number): Promise<Post[]> {
-    return await db
-      .select()
-      .from(posts)
-      .where(eq(posts.groupId, groupId))
-      .orderBy(desc(posts.createdAt));
+    try {
+      console.log('Storage: Fetching posts for group:', groupId);
+      const result = await db
+        .select()
+        .from(posts)
+        .where(eq(posts.groupId, groupId))
+        .orderBy(desc(posts.createdAt));
+
+      console.log(`Storage: Found ${result.length} posts for group ${groupId}`);
+      return result;
+    } catch (error) {
+      console.error('Storage: Error fetching group posts:', error);
+      throw error;
+    }
   }
 
   async createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post> {
-    console.log('Storage: Creating post:', post);
-    const [newPost] = await db.insert(posts).values(post).returning();
-    console.log('Storage: Created post:', newPost);
+    const [newPost] = await db
+      .insert(posts)
+      .values({
+        content: post.content,
+        userId: post.userId,
+        groupId: post.groupId,
+        postType: post.postType || "text",
+        imageUrl: post.imageUrl,
+        musicUrl: post.musicUrl,
+        likeCount: 0,
+      })
+      .returning();
     return newPost;
   }
 
@@ -131,144 +179,331 @@ export class DatabaseStorage implements IStorage {
     const [post] = await db
       .update(posts)
       .set({ content })
-      .where(and(eq(posts.id, postId), eq(posts.userId, userId)))
+      .where(and(
+        eq(posts.id, postId),
+        eq(posts.userId, userId)
+      ))
       .returning();
     return post;
   }
 
-  async deletePost(postId: number, userId: number): Promise<boolean> {
+  async joinGroup(userId: number, groupId: number): Promise<void> {
     try {
-      const [deletedPost] = await db
-        .delete(posts)
-        .where(and(eq(posts.id, postId), eq(posts.userId, userId)))
-        .returning();
-      return !!deletedPost;
+      await db.transaction(async (tx) => {
+        await tx
+          .insert(userGroups)
+          .values({ userId, groupId })
+          .onConflictDoNothing();
+
+        await tx
+          .insert(groupMembers)
+          .values({ userId, groupId, role: 'member' })
+          .onConflictDoNothing();
+      });
     } catch (error) {
-      console.error("Error deleting post:", error);
-      return false;
+      console.error('Error joining group:', error);
+      throw error;
     }
   }
 
-  async joinGroup(userId: number, groupId: number): Promise<void> {
-    await db.insert(groupMembers).values({ userId, groupId });
-  }
-
   async leaveGroup(userId: number, groupId: number): Promise<void> {
-    await db.delete(groupMembers).where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId)));
+    await db
+      .delete(userGroups)
+      .where(
+        and(
+          eq(userGroups.userId, userId),
+          eq(userGroups.groupId, groupId)
+        )
+      );
   }
 
   async getUserGroups(userId: number): Promise<Group[]> {
-    const groupMemberships = await db.select().from(groupMembers).where(eq(groupMembers.userId, userId));
-    const groupIds = groupMemberships.map((membership) => membership.groupId);
-    return db.select().from(groups).where(groupIds.length > 0 ? sql`id IN (${sql.join(groupIds, ',')})` : sql`id = -1`);
+    const result = await db
+      .select({
+        id: groups.id,
+        name: groups.name,
+        description: groups.description,
+        category: groups.category,
+        createdAt: groups.createdAt,
+        iconUrl: groups.iconUrl,
+        coverUrl: groups.coverUrl,
+        isPrivate: groups.isPrivate,
+      })
+      .from(userGroups)
+      .innerJoin(groups, eq(userGroups.groupId, groups.id))
+      .where(eq(userGroups.userId, userId));
+
+    return result;
   }
 
   async getPostComments(postId: number): Promise<(Comment & { user: User })[]> {
-    return db.select({
-      comments: { id: comments.id, content: comments.content, createdAt: comments.createdAt },
-      user: { id: users.id, username: users.username },
-    }).from(comments)
-    .innerJoin(users, eq(comments.userId, users.id))
-    .where(eq(comments.postId, postId));
+    const result = await db
+      .select({
+        id: comments.id,
+        content: comments.content,
+        createdAt: comments.createdAt,
+        user: users,
+      })
+      .from(comments)
+      .innerJoin(users, eq(comments.userId, users.id))
+      .where(eq(comments.postId, postId))
+      .orderBy(comments.createdAt);
 
+    return result as (Comment & { user: User })[];
   }
 
   async createComment(userId: number, postId: number, content: string): Promise<Comment> {
-      const [comment] = await db.insert(comments).values({ userId, postId, content }).returning();
-      return comment;
+    const [comment] = await db
+      .insert(comments)
+      .values({ userId, postId, content })
+      .returning();
+
+    return comment;
   }
 
   async likePost(userId: number, postId: number): Promise<void> {
-    await db.insert(likes).values({ userId, postId });
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(likes)
+        .values({ userId, postId })
+        .onConflictDoNothing();
+
+      await tx
+        .update(posts)
+        .set({ 
+          likeCount: sql`${posts.likeCount} + 1` 
+        })
+        .where(eq(posts.id, postId));
+    });
   }
 
   async unlikePost(userId: number, postId: number): Promise<void> {
-    await db.delete(likes).where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(likes)
+        .where(
+          and(
+            eq(likes.userId, userId),
+            eq(likes.postId, postId)
+          )
+        );
+
+      await tx
+        .update(posts)
+        .set({ 
+          likeCount: sql`${posts.likeCount} - 1` 
+        })
+        .where(eq(posts.id, postId));
+    });
   }
 
   async isPostLikedByUser(userId: number, postId: number): Promise<boolean> {
-    const [like] = await db.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
+    const [like] = await db
+      .select()
+      .from(likes)
+      .where(and(
+        eq(likes.userId, userId),
+        eq(likes.postId, postId)
+      ));
+
     return !!like;
   }
-
   async getUserPosts(userId: number): Promise<Post[]> {
-    return db.select().from(posts).where(eq(posts.userId, userId)).orderBy(desc(posts.createdAt));
-  }
+    const userPosts = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.userId, userId))
+      .orderBy(desc(posts.createdAt));
 
+    return userPosts;
+  }
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
-    const [updatedUser] = await db.update(users).set(userData).where(eq(users.id, id)).returning();
-    return updatedUser;
+    const [user] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
-
   async getFriends(userId: number): Promise<User[]> {
-    const friendIds = (await db.select({ friendId: friendships.friendId }).from(friendships).where(eq(friendships.userId, userId))).map(f => f.friendId);
-    return db.select().from(users).where(friendIds.length > 0 ? sql`id IN (${sql.join(friendIds, ',')})` : sql`id = -1`);
+    const result = await db
+      .select({
+        friend: users,
+      })
+      .from(friendships)
+      .where(eq(friendships.userId, userId))
+      .innerJoin(users, eq(friendships.friendId, users.id));
+
+    return result.map((f) => f.friend);
   }
 
   async getFriendRequests(userId: number): Promise<{ sender: User; status: string }[]> {
-    return db.select({
-        sender: {id: users.id, username: users.username},
-        status: friendRequests.status
-    }).from(friendRequests)
-    .innerJoin(users, eq(friendRequests.senderId, users.id))
-    .where(eq(friendRequests.receiverId, userId));
+    const result = await db
+      .select({
+        sender: users,
+        status: friendRequests.status,
+      })
+      .from(friendRequests)
+      .where(eq(friendRequests.receiverId, userId))
+      .innerJoin(users, eq(friendRequests.senderId, users.id));
+
+    return result.map((r) => ({ 
+      sender: r.sender, 
+      status: r.status || 'pending' 
+    }));
   }
 
   async sendFriendRequest(senderId: number, receiverId: number): Promise<void> {
-    await db.insert(friendRequests).values({ senderId, receiverId, status: 'pending' });
+    await db
+      .insert(friendRequests)
+      .values({ senderId, receiverId })
+      .onConflictDoNothing();
   }
 
   async acceptFriendRequest(senderId: number, receiverId: number): Promise<void> {
-    await db.update(friendRequests).set({ status: 'accepted' }).where(and(eq(friendRequests.senderId, senderId), eq(friendRequests.receiverId, receiverId)));
-    await db.insert(friendships).values({ userId: senderId, friendId: receiverId });
-    await db.insert(friendships).values({ userId: receiverId, friendId: senderId });
+    await db.transaction(async (tx) => {
+      await tx
+        .update(friendRequests)
+        .set({ status: "accepted" })
+        .where(
+          and(
+            eq(friendRequests.senderId, senderId),
+            eq(friendRequests.receiverId, receiverId)
+          )
+        );
+
+      await tx.insert(friendships).values([
+        { userId: senderId, friendId: receiverId },
+        { userId: receiverId, friendId: senderId },
+      ]);
+    });
   }
 
   async rejectFriendRequest(senderId: number, receiverId: number): Promise<void> {
-    await db.delete(friendRequests).where(and(eq(friendRequests.senderId, senderId), eq(friendRequests.receiverId, receiverId)));
+    await db
+      .update(friendRequests)
+      .set({ status: "rejected" })
+      .where(
+        and(
+          eq(friendRequests.senderId, senderId),
+          eq(friendRequests.receiverId, receiverId)
+        )
+      );
   }
 
   async getFollowers(userId: number): Promise<User[]> {
-    const followerIds = (await db.select({ followerId: followers.followerId }).from(followers).where(eq(followers.followingId, userId))).map(f => f.followerId);
-    return db.select().from(users).where(followerIds.length > 0 ? sql`id IN (${sql.join(followerIds, ',')})` : sql`id = -1`);
+    const result = await db
+      .select({
+        follower: users,
+      })
+      .from(followers)
+      .where(eq(followers.followingId, userId))
+      .innerJoin(users, eq(followers.followerId, users.id));
+
+    return result.map((f) => f.follower);
   }
 
   async getFollowing(userId: number): Promise<User[]> {
-    const followingIds = (await db.select({ followingId: followers.followingId }).from(followers).where(eq(followers.followerId, userId))).map(f => f.followingId);
-    return db.select().from(users).where(followingIds.length > 0 ? sql`id IN (${sql.join(followingIds, ',')})` : sql`id = -1`);
+    const result = await db
+      .select({
+        following: users,
+      })
+      .from(followers)
+      .where(eq(followers.followerId, userId))
+      .innerJoin(users, eq(followers.followingId, users.id));
+
+    return result.map((f) => f.following);
   }
 
   async followUser(followerId: number, followingId: number): Promise<void> {
-    await db.insert(followers).values({ followerId, followingId });
+    await db
+      .insert(followers)
+      .values({ followerId, followingId })
+      .onConflictDoNothing();
   }
 
   async unfollowUser(followerId: number, followingId: number): Promise<void> {
-    await db.delete(followers).where(and(eq(followers.followerId, followerId), eq(followers.followingId, followingId)));
+    await db
+      .delete(followers)
+      .where(
+        and(
+          eq(followers.followerId, followerId),
+          eq(followers.followingId, followingId)
+        )
+      );
   }
 
   async isFollowing(followerId: number, followingId: number): Promise<boolean> {
-    const [following] = await db.select().from(followers).where(and(eq(followers.followerId, followerId), eq(followers.followingId, followingId)));
-    return !!following;
+    const [follow] = await db
+      .select()
+      .from(followers)
+      .where(
+        and(
+          eq(followers.followerId, followerId),
+          eq(followers.followingId, followingId)
+        )
+      );
+
+    return !!follow;
   }
 
   async getGroupMembers(groupId: number): Promise<GroupMember[]> {
-    return db.select().from(groupMembers).where(eq(groupMembers.groupId, groupId));
+    try {
+      console.log('Storage: Fetching members for group:', groupId);
+      const result = await db
+        .select()
+        .from(groupMembers)
+        .where(eq(groupMembers.groupId, groupId))
+        .orderBy(asc(groupMembers.joinedAt));
+
+      console.log(`Storage: Found ${result.length} members for group ${groupId}`);
+      return result;
+    } catch (error) {
+      console.error('Storage: Error fetching group members:', error);
+      throw error;
+    }
   }
 
-  async addGroupMember(userId: number, groupId: number, role?: string): Promise<void> {
-    await db.insert(groupMembers).values({ userId, groupId, role: role || 'member' });
+  async addGroupMember(userId: number, groupId: number, role: string = "member"): Promise<void> {
+    await db
+      .insert(groupMembers)
+      .values({ userId, groupId, role })
+      .onConflictDoNothing();
   }
 
   async removeGroupMember(userId: number, groupId: number): Promise<void> {
-    await db.delete(groupMembers).where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId)));
+    await db
+      .delete(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.userId, userId),
+          eq(groupMembers.groupId, groupId)
+        )
+      );
   }
 
   async getGroupChat(groupId: number): Promise<GroupChat[]> {
-    return db.select().from(groupChat).where(eq(groupChat.groupId, groupId)).orderBy(asc(groupChat.createdAt));
+    try {
+      return await db
+        .select()
+        .from(groupChat)
+        .where(eq(groupChat.groupId, groupId))
+        .orderBy(asc(groupChat.createdAt));
+    } catch (error) {
+      console.error('Error fetching group chat:', error);
+      return [];
+    }
   }
 
-  async createChatMessage(userId: number, groupId: number, message: string): Promise<GroupChat> {
-    const [chatMessage] = await db.insert(groupChat).values({ userId, groupId, message }).returning();
+  async createChatMessage(
+    userId: number,
+    groupId: number,
+    message: string
+  ): Promise<GroupChat> {
+    const [chatMessage] = await db
+      .insert(groupChat)
+      .values({ userId, groupId, message })
+      .returning();
     return chatMessage;
   }
 }

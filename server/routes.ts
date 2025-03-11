@@ -7,66 +7,6 @@ import fs from "fs/promises";
 import path from "path";
 import express from "express";
 
-// Helper functions for URL processing
-function extractYouTubeVideoId(url: string): string | null {
-  try {
-    console.log('YouTube URL processing input:', url);
-
-    if (!url) {
-      console.log('Empty URL provided');
-      return null;
-    }
-
-    const urlParts = url.split('youtu.be/');
-    if (urlParts.length !== 2) {
-      console.log('Invalid URL format - expected youtu.be/ pattern');
-      return null;
-    }
-
-    // Get the part after youtu.be/
-    let videoId = urlParts[1];
-
-    // Remove any query parameters or hash
-    videoId = videoId.split('?')[0].split('#')[0];
-
-    console.log('Extracted video ID:', videoId);
-
-    if (!videoId || videoId.length === 0) {
-      console.log('Empty video ID after extraction');
-      return null;
-    }
-
-    return videoId;
-  } catch (error) {
-    console.error('Error in extractYouTubeVideoId:', error);
-    return null;
-  }
-}
-
-function extractSpotifyTrackId(url: string): string | null {
-  try {
-    console.log('Spotify URL processing input:', url);
-
-    if (!url || !url.includes('spotify.com/track/')) {
-      console.log('Invalid Spotify URL format');
-      return null;
-    }
-
-    const match = url.match(/track\/([a-zA-Z0-9]+)/);
-    if (!match || !match[1]) {
-      console.log('Could not extract track ID');
-      return null;
-    }
-
-    const trackId = match[1].split('?')[0];
-    console.log('Extracted track ID:', trackId);
-    return trackId;
-  } catch (error) {
-    console.error('Error in extractSpotifyTrackId:', error);
-    return null;
-  }
-}
-
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create upload directories if they don't exist
   await fs.mkdir("uploads/music", { recursive: true });
@@ -100,88 +40,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/groups/:id/posts", async (req, res) => {
+  app.post("/api/groups/:groupId/posts/music", upload.single("music"), async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Not authenticated" });
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
       }
 
-      console.log('Received post creation request:', req.body);
-      const { content, postType, mediaUrl } = req.body;
-
-      if (!content) {
-        return res.status(400).json({ error: "Content is required" });
-      }
-
-      if (!postType) {
-        return res.status(400).json({ error: "Post type is required" });
-      }
-
-      let processedVideoUrl = null;
-      let processedMusicUrl = null;
-      let processedImageUrl = null;
-
-      if (postType === "video" && mediaUrl) {
-        console.log('Processing video URL:', mediaUrl);
-        const videoId = extractYouTubeVideoId(mediaUrl);
-
-        if (!videoId) {
-          console.error('Failed to extract video ID from:', mediaUrl);
-          return res.status(400).json({
-            error: "Invalid YouTube URL",
-            details: "Could not extract video ID from the provided URL"
-          });
-        }
-
-        processedVideoUrl = `https://www.youtube.com/embed/${videoId}`;
-        console.log('Final video URL:', processedVideoUrl);
-      }
-
-      if (postType === "music" && mediaUrl) {
-        console.log('Processing music URL:', mediaUrl);
-        const trackId = extractSpotifyTrackId(mediaUrl);
-
-        if (!trackId) {
-          console.error('Failed to extract track ID from:', mediaUrl);
-          return res.status(400).json({
-            error: "Invalid Spotify URL",
-            details: "Could not extract track ID from the provided URL"
-          });
-        }
-
-        processedMusicUrl = `https://open.spotify.com/embed/track/${trackId}`;
-        console.log('Final music URL:', processedMusicUrl);
-      }
-
-      if (postType === "image") {
-        processedImageUrl = mediaUrl;
-      }
-
-      console.log('Creating post with processed URLs:', {
-        videoUrl: processedVideoUrl,
-        musicUrl: processedMusicUrl,
-        imageUrl: processedImageUrl
-      });
-
+      const musicUrl = `/uploads/music/${req.file.filename}`;
       const post = await storage.createPost({
-        content,
+        content: req.body.content || "Shared a music track",
         userId: req.user!.id,
-        groupId: parseInt(req.params.id),
-        postType,
-        imageUrl: processedImageUrl,
-        musicUrl: processedMusicUrl,
-        videoUrl: processedVideoUrl,
+        groupId: parseInt(req.params.groupId),
+        postType: "music",
+        musicUrl,
+        imageUrl: null,
         likeCount: 0,
       });
 
-      console.log('Successfully created post:', post);
       res.status(201).json(post);
     } catch (error) {
-      console.error("Error creating post:", error);
-      res.status(500).json({
-        error: "Failed to create post",
-        details: error instanceof Error ? error.message : "Unknown error occurred"
-      });
+      console.error("Error uploading music:", error);
+      res.status(500).json({ error: "Failed to upload music" });
     }
   });
 
@@ -210,6 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid group ID" });
       }
 
+      // Get the group with all related data
       const group = await storage.getGroupById(groupId);
       console.log('Routes: Group fetch result:', group);
 
@@ -246,54 +130,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/groups/:groupId/posts/music", upload.single("music"), async (req, res) => {
+  app.post("/api/groups/:id/posts", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const musicUrl = `/uploads/music/${req.file.filename}`;
       const post = await storage.createPost({
-        content: req.body.content || "Shared a music track",
+        content: req.body.content,
         userId: req.user!.id,
-        groupId: parseInt(req.params.groupId),
-        postType: "music",
-        musicUrl,
-        imageUrl: null,
-        videoUrl: null,
+        groupId: parseInt(req.params.id),
+        postType: req.body.postType,
+        imageUrl: req.body.postType === "image" ? req.body.mediaUrl : null,
+        musicUrl: req.body.postType === "music" ? req.body.mediaUrl : null,
+        videoUrl: req.body.postType === "video" ? req.body.mediaUrl : null,
         likeCount: 0,
       });
 
       res.status(201).json(post);
     } catch (error) {
-      console.error("Error uploading music:", error);
-      res.status(500).json({ error: "Failed to upload music" });
-    }
-  });
-
-
-  // Add delete post endpoint
-  app.delete("/api/posts/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      const postId = parseInt(req.params.id);
-      const deleted = await storage.deletePost(postId, req.user!.id);
-
-      if (!deleted) {
-        return res.status(404).json({ error: "Post not found or unauthorized" });
-      }
-
-      res.sendStatus(200);
-    } catch (error) {
-      console.error("Error deleting post:", error);
-      res.status(500).json({ error: "Failed to delete post" });
+      console.error("Error creating post:", error);
+      res.status(500).json({ error: "Failed to create post" });
     }
   });
 
