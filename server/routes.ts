@@ -208,6 +208,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get post reactions
+  app.get("/api/posts/:id/reactions", async (req, res) => {
+    try {
+      const reactions = await storage.getPostReactions(parseInt(req.params.id));
+      res.json(reactions);
+    } catch (error) {
+      console.error("Error fetching reactions:", error);
+      res.status(500).json({ error: "Failed to fetch reactions" });
+    }
+  });
+
+  // Add reaction to post
+  app.post("/api/posts/:id/reactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const reaction = await storage.addReaction(
+        req.user!.id,
+        parseInt(req.params.id),
+        req.body.emoji
+      );
+      res.status(201).json(reaction);
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+      res.status(500).json({ error: "Failed to add reaction" });
+    }
+  });
+
+  // Remove reaction from post
+  app.delete("/api/posts/:id/reactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      await storage.removeReaction(
+        req.user!.id,
+        parseInt(req.params.id),
+        req.body.emoji
+      );
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error removing reaction:", error);
+      res.status(500).json({ error: "Failed to remove reaction" });
+    }
+  });
+
   // Get user data
   app.get("/api/users/:id", async (req, res) => {
     try {

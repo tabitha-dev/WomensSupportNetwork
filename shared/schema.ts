@@ -105,6 +105,14 @@ export const userGroups = pgTable("user_groups", {
   groupId: integer("group_id").references(() => groups.id),
 });
 
+export const reactions = pgTable("reactions", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").references(() => posts.id),
+  userId: integer("user_id").references(() => users.id),
+  emoji: text("emoji").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -126,6 +134,12 @@ export const insertUserSchema = createInsertSchema(users).pick({
   fontFamily: true,
 });
 
+export const insertReactionSchema = createInsertSchema(reactions).pick({
+  postId: true,
+  userId: true,
+  emoji: true,
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Group = typeof groups.$inferSelect;
@@ -139,3 +153,6 @@ export type GroupWithRelations = Group & {
   members: GroupMember[];
   chatMessages: GroupChat[];
 };
+
+export type Reaction = typeof reactions.$inferSelect;
+export type InsertReaction = z.infer<typeof insertReactionSchema>;

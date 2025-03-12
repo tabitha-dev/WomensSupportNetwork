@@ -8,6 +8,12 @@ import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
+interface Reaction {
+    userId: number;
+    postId: number;
+    emoji: string;
+}
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -45,6 +51,9 @@ export interface IStorage {
   getGroupChat(groupId: number): Promise<GroupChat[]>;
   createChatMessage(userId: number, groupId: number, message: string): Promise<GroupChat>;
   deletePost(postId: number, userId: number): Promise<boolean>;
+  getPostReactions(postId: number): Promise<Reaction[]>;
+  addReaction(userId: number, postId: number, emoji: string): Promise<Reaction>;
+  removeReaction(userId: number, postId: number, emoji: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -572,6 +581,33 @@ export class DatabaseStorage implements IStorage {
       console.error('Error deleting post:', error);
       return false;
     }
+  }
+
+  async getPostReactions(postId: number): Promise<Reaction[]> {
+    return await db
+      .select()
+      .from(reactions)
+      .where(eq(reactions.postId, postId));
+  }
+
+  async addReaction(userId: number, postId: number, emoji: string): Promise<Reaction> {
+    const [reaction] = await db
+      .insert(reactions)
+      .values({ userId, postId, emoji })
+      .returning();
+    return reaction;
+  }
+
+  async removeReaction(userId: number, postId: number, emoji: string): Promise<void> {
+    await db
+      .delete(reactions)
+      .where(
+        and(
+          eq(reactions.userId, userId),
+          eq(reactions.postId, postId),
+          eq(reactions.emoji, emoji)
+        )
+      );
   }
 }
 

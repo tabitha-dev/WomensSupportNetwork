@@ -1,4 +1,4 @@
-import { Post, Comment } from "@shared/schema";
+import { Post, Comment, Reaction } from "@shared/schema";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from "@shared/schema";
@@ -14,7 +14,8 @@ import {
   Image as ImageIcon,
   Video,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  Smile
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -24,6 +25,8 @@ import { PostSkeleton } from "./post-skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ErrorBoundary } from "./error-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
+import EmojiPicker from 'emoji-picker-react';
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 type PostProps = {
   post: Post;
@@ -58,7 +61,7 @@ export default function PostComponent({ post: initialPost }: PostProps) {
   const [post, setPost] = useState(initialPost);
 
   // All query hooks
-  const { 
+  const {
     data: author,
     isLoading: isLoadingAuthor,
     error: authorError
@@ -78,6 +81,10 @@ export default function PostComponent({ post: initialPost }: PostProps) {
 
   const { data: isLiked = false } = useQuery<boolean>({
     queryKey: [`/api/posts/${post.id}/liked`],
+  });
+
+  const { data: reactions = [] } = useQuery<Reaction[]>({
+    queryKey: [`/api/posts/${post.id}/reactions`],
   });
 
   // All mutation hooks
@@ -189,6 +196,36 @@ export default function PostComponent({ post: initialPost }: PostProps) {
     },
   });
 
+  const addReactionMutation = useMutation({
+    mutationFn: async (emoji: string) => {
+      const response = await apiRequest("POST", `/api/posts/${post.id}/reactions`, { emoji });
+      if (!response.ok) {
+        throw new Error('Failed to add reaction');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/reactions`] });
+      toast({
+        title: "Success",
+        description: "Reaction added!",
+      });
+    },
+  });
+
+  const removeReactionMutation = useMutation({
+    mutationFn: async (emoji: string) => {
+      const response = await apiRequest("DELETE", `/api/posts/${post.id}/reactions`, { emoji });
+      if (!response.ok) {
+        throw new Error('Failed to remove reaction');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/reactions`] });
+    },
+  });
+
+
   const canEdit = currentUser?.id === post.userId;
 
   // Handle loading and error states after all hooks
@@ -210,6 +247,12 @@ export default function PostComponent({ post: initialPost }: PostProps) {
   if (!author) {
     return null;
   }
+
+  // Group reactions by emoji
+  const reactionCounts = reactions.reduce((acc, reaction) => {
+    acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <ErrorBoundary>
@@ -341,6 +384,45 @@ export default function PostComponent({ post: initialPost }: PostProps) {
                     <MessageCircle className="h-4 w-4 mr-1" />
                     {comments.length}
                   </Button>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="hover:scale-105">
+                        <Smile className="h-4 w-4 mr-1" />
+                        Add Reaction
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <EmojiPicker
+                        onEmojiClick={(emojiData) => {
+                          addReactionMutation.mutate(emojiData.emoji);
+                        }}
+                        width="100%"
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <div className="flex gap-2">
+                    {Object.entries(reactionCounts).map(([emoji, count]) => (
+                      <Button
+                        key={emoji}
+                        variant="ghost"
+                        size="sm"
+                        className="hover:scale-105"
+                        onClick={() => {
+                          const hasReacted = reactions.some(
+                            r => r.emoji === emoji && r.userId === currentUser?.id
+                          );
+                          if (hasReacted) {
+                            removeReactionMutation.mutate(emoji);
+                          } else {
+                            addReactionMutation.mutate(emoji);
+                          }
+                        }}
+                      >
+                        {emoji} {count}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
