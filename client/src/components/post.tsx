@@ -1,6 +1,6 @@
-import { Post } from "@shared/schema";
+import { Post, Comment } from "@shared/schema";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -15,10 +15,11 @@ import {
   Video,
   Trash2,
 } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type PostProps = {
   post: Post;
@@ -26,7 +27,6 @@ type PostProps = {
 
 function getYouTubeEmbedUrl(url: string) {
   try {
-    // Handle both regular and shortened YouTube URLs
     if (url.includes('youtu.be/')) {
       const videoId = url.split('youtu.be/')[1]?.split('?')[0];
       if (!videoId) return null;
@@ -41,24 +41,28 @@ function getYouTubeEmbedUrl(url: string) {
   }
 }
 
-export default function PostComponent({ post }: PostProps) {
+export default function PostComponent({ post: initialPost }: PostProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(post.content);
+  const [editedContent, setEditedContent] = useState(initialPost.content);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState("");
+
+  // Track post state locally for optimistic updates
+  const [post, setPost] = useState(initialPost);
 
   const { data: author } = useQuery<User>({
     queryKey: [`/api/users/${post.userId}`],
   });
 
-  const { data: comments = [], isLoading: isLoadingComments } = useQuery({
+  const { data: comments = [], isLoading: isLoadingComments } = useQuery<Comment[]>({
     queryKey: [`/api/posts/${post.id}/comments`],
     enabled: showComments,
   });
 
-  const { data: isLiked = false } = useQuery({
+  const { data: isLiked = false } = useQuery<boolean>({
     queryKey: [`/api/posts/${post.id}/liked`],
   });
 
@@ -93,8 +97,9 @@ export default function PostComponent({ post }: PostProps) {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedPost: Post) => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
+      setPost(updatedPost);
       setIsEditing(false);
       toast({
         title: "Success",
@@ -117,7 +122,33 @@ export default function PostComponent({ post }: PostProps) {
         throw new Error('Failed to like/unlike post');
       }
     },
-    onSuccess: () => {
+    onMutate: async () => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [`/api/posts/${post.id}/liked`] });
+
+      // Snapshot the previous values
+      const previousLiked = queryClient.getQueryData([`/api/posts/${post.id}/liked`]);
+
+      // Optimistically update the like status and count
+      queryClient.setQueryData([`/api/posts/${post.id}/liked`], !isLiked);
+      setPost(prev => ({
+        ...prev,
+        likeCount: prev.likeCount + (isLiked ? -1 : 1)
+      }));
+
+      return { previousLiked };
+    },
+    onError: (err, _, context) => {
+      // Revert optimistic update on error
+      queryClient.setQueryData([`/api/posts/${post.id}/liked`], context?.previousLiked);
+      setPost(initialPost);
+      toast({
+        title: "Error",
+        description: "Failed to update like status",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/liked`] });
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
     },
@@ -131,13 +162,28 @@ export default function PostComponent({ post }: PostProps) {
       }
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/comments`] });
+    onSuccess: (newCommentData: Comment) => {
+      queryClient.setQueryData<Comment[]>([`/api/posts/${post.id}/comments`], (old = []) => [...old, newCommentData]);
       setNewComment("");
+      toast({
+        title: "Success",
+        description: "Comment added successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add comment: " + error.message,
+        variant: "destructive",
+      });
     },
   });
 
   const canEdit = currentUser?.id === post.userId;
+
+  if (!author) {
+    return <Skeleton className="w-full h-[200px]" />;
+  }
 
   return (
     <motion.div
@@ -253,6 +299,7 @@ export default function PostComponent({ post }: PostProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => likeMutation.mutate()}
+                  disabled={likeMutation.isPending}
                   className={`hover:scale-105 ${isLiked ? "text-red-500" : ""}`}
                 >
                   <Heart className={`h-4 w-4 mr-1 ${isLiked ? "fill-current" : ""}`} />
@@ -271,64 +318,70 @@ export default function PostComponent({ post }: PostProps) {
             </div>
           )}
 
-          {showComments && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              transition={{ duration: 0.3 }}
-              className="pt-4 space-y-4"
-            >
-              <div className="flex gap-2">
-                <Textarea
-                  placeholder="Write a comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="min-h-[60px]"
-                />
-                <Button
-                  size="icon"
-                  onClick={() => commentMutation.mutate()}
-                  disabled={!newComment.trim() || commentMutation.isPending}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-              {isLoadingComments ? (
-                <div>Loading comments...</div>
-              ) : (
-                <div className="space-y-2">
-                  {comments.map((comment) => (
-                    <motion.div
-                      key={`comment-${comment.id}`}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="flex items-start gap-2 p-2 rounded-lg bg-muted/50"
-                    >
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback>
-                          {comment.user.displayName.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-sm font-medium">
-                            {comment.user.displayName}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(comment.createdAt), {
-                              addSuffix: true,
-                            })}
-                          </span>
-                        </div>
-                        <p className="text-sm">{comment.content}</p>
-                      </div>
-                    </motion.div>
-                  ))}
+          <AnimatePresence>
+            {showComments && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="pt-4 space-y-4"
+              >
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder="Write a comment..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="min-h-[60px]"
+                  />
+                  <Button
+                    size="icon"
+                    onClick={() => commentMutation.mutate()}
+                    disabled={!newComment.trim() || commentMutation.isPending}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
-            </motion.div>
-          )}
+                {isLoadingComments ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-[60px]" />
+                    <Skeleton className="h-[60px]" />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {comments.map((comment) => (
+                      <motion.div
+                        key={`comment-${comment.id}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="flex items-start gap-2 p-2 rounded-lg bg-muted/50"
+                      >
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback>
+                            {comment.user.displayName.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-sm font-medium">
+                              {comment.user.displayName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(comment.createdAt), {
+                                addSuffix: true,
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-sm">{comment.content}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </motion.div>
