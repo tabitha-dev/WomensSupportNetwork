@@ -272,6 +272,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user profile
+  app.patch("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const userId = parseInt(req.params.id);
+
+      // Only allow users to update their own profile
+      if (req.user!.id !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const updatedUser = await storage.updateUser(userId, req.body);
+      const { password, ...safeUser } = updatedUser;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

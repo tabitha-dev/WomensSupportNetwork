@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { FaTwitter, FaGithub, FaLinkedin, FaInstagram } from "react-icons/fa";
+import { useToast } from "@/hooks/use-toast";
 
 const SocialIconMap = {
   twitter: FaTwitter,
@@ -35,13 +36,42 @@ const SocialIconMap = {
 export default function ProfilePage() {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const userId = parseInt(id!);
   const isOwnProfile = currentUser?.id === userId;
   const [isEditing, setIsEditing] = useState(false);
 
+  // Form state
+  const [formData, setFormData] = useState({
+    displayName: '',
+    bio: '',
+    location: '',
+    occupation: '',
+    favoriteQuote: '',
+    backgroundColor: '',
+    textColor: '',
+    accentColor: '',
+    fontFamily: '',
+  });
+
   const { data: user, isLoading: isLoadingUser } = useQuery<User>({
     queryKey: [`/api/users/${userId}`],
     enabled: !!userId,
+    onSuccess: (data) => {
+      if (data) {
+        setFormData({
+          displayName: data.displayName || '',
+          bio: data.bio || '',
+          location: data.location || '',
+          occupation: data.occupation || '',
+          favoriteQuote: data.favoriteQuote || '',
+          backgroundColor: data.backgroundColor || '',
+          textColor: data.textColor || '',
+          accentColor: data.accentColor || '',
+          fontFamily: data.fontFamily || '',
+        });
+      }
+    },
   });
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
@@ -76,12 +106,25 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Partial<User>) => {
-      const res = await apiRequest("PATCH", `/api/users/${userId}`, data);
-      return res.json();
+      const response = await apiRequest("PATCH", `/api/users/${userId}`, data);
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
-      setIsEditing(false);
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update profile: " + error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -103,6 +146,11 @@ export default function ProfilePage() {
       await apiRequest("POST", `/api/users/${userId}/friend-request`);
     },
   });
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    updateProfileMutation.mutate({ [field]: value });
+  };
 
   // Parse social links from JSON string
   const socialLinks = user?.socialLinks ? JSON.parse(user.socialLinks) : {};
@@ -224,9 +272,9 @@ export default function ProfilePage() {
                         <label className="text-sm font-medium">Display Name</label>
                         <Input
                           placeholder="Display Name"
-                          defaultValue={user.displayName}
+                          value={formData.displayName}
                           onChange={(e) =>
-                            updateProfileMutation.mutate({ displayName: e.target.value })
+                            handleInputChange('displayName', e.target.value)
                           }
                         />
                       </div>
@@ -234,10 +282,8 @@ export default function ProfilePage() {
                         <label className="text-sm font-medium">Bio</label>
                         <Textarea
                           placeholder="Bio"
-                          defaultValue={user.bio || ""}
-                          onChange={(e) =>
-                            updateProfileMutation.mutate({ bio: e.target.value })
-                          }
+                          value={formData.bio}
+                          onChange={(e) => handleInputChange('bio', e.target.value)}
                         />
                       </div>
                       <div>
@@ -248,7 +294,7 @@ export default function ProfilePage() {
                               <Icon className="h-5 w-5" />
                               <Input
                                 placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`}
-                                defaultValue={socialLinks[platform] || ""}
+                                value={socialLinks[platform] || ""}
                                 onChange={(e) => updateSocialLinks(platform, e.target.value)}
                               />
                             </div>
@@ -263,44 +309,32 @@ export default function ProfilePage() {
                           <label className="text-sm font-medium">Background Color</label>
                           <Input
                             type="color"
-                            defaultValue={user.backgroundColor}
-                            onChange={(e) =>
-                              updateProfileMutation.mutate({
-                                backgroundColor: e.target.value,
-                              })
-                            }
+                            value={formData.backgroundColor}
+                            onChange={(e) => handleInputChange('backgroundColor', e.target.value)}
                           />
                         </div>
                         <div>
                           <label className="text-sm font-medium">Text Color</label>
                           <Input
                             type="color"
-                            defaultValue={user.textColor}
-                            onChange={(e) =>
-                              updateProfileMutation.mutate({ textColor: e.target.value })
-                            }
+                            value={formData.textColor}
+                            onChange={(e) => handleInputChange('textColor', e.target.value)}
                           />
                         </div>
                         <div>
                           <label className="text-sm font-medium">Accent Color</label>
                           <Input
                             type="color"
-                            defaultValue={user.accentColor}
-                            onChange={(e) =>
-                              updateProfileMutation.mutate({ accentColor: e.target.value })
-                            }
+                            value={formData.accentColor}
+                            onChange={(e) => handleInputChange('accentColor', e.target.value)}
                           />
                         </div>
                         <div>
                           <label className="text-sm font-medium">Font Family</label>
                           <select
                             className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md"
-                            value={user.fontFamily || ""}
-                            onChange={(e) =>
-                              updateProfileMutation.mutate({
-                                fontFamily: e.target.value,
-                              })
-                            }
+                            value={formData.fontFamily}
+                            onChange={(e) => handleInputChange('fontFamily', e.target.value)}
                           >
                             <option value="">Default</option>
                             <option value="Arial">Arial</option>
