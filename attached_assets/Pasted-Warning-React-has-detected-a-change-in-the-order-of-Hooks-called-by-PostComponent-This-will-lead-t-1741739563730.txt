@@ -1,0 +1,66 @@
+Warning: React has detected a change in the order of Hooks called by PostComponent. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+1. useContext                 useContext
+2. useState                   useState
+3. useEffect                  useEffect
+4. useContext                 useContext
+5. useState                   useState
+6. useState                   useState
+7. useState                   useState
+8. useState                   useState
+9. useState                   useState
+10. useContext                useContext
+11. useContext                useContext
+12. useContext                useContext
+13. useEffect                 useEffect
+14. useState                  useState
+15. useCallback               useCallback
+16. useSyncExternalStore      useSyncExternalStore
+17. useEffect                 useEffect
+18. undefined                 useContext
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    at PostComponent (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/components/post.tsx:56:47)
+    at div
+    at div
+    at div
+    at GroupPage (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/pages/group-page.tsx:40:18)
+    at Route (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=97c1e122:323:16)
+    at Switch (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=97c1e122:379:17)
+    at Router
+    at main
+    at div
+    at AuthProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at ThemeProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/hooks/use-theme.tsx:20:33)
+    at QueryClientProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=97c1e122:2805:3)
+    at App
+Rendered more hooks than during the previous render.
+Rendered more hooks than during the previous render.
+Rendered more hooks than during the previous render.
+Rendered more hooks than during the previous render.
+Rendered more hooks than during the previous render.
+Rendered more hooks than during the previous render.
+Rendered more hooks than during the previous render.
+Rendered more hooks than during the previous render.
+The above error occurred in the <PostComponent> component:
+
+    at PostComponent (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/components/post.tsx:56:47)
+    at div
+    at div
+    at div
+    at GroupPage (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/pages/group-page.tsx:40:18)
+    at Route (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=97c1e122:323:16)
+    at Switch (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=97c1e122:379:17)
+    at Router
+    at main
+    at div
+    at AuthProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at ThemeProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/hooks/use-theme.tsx:20:33)
+    at QueryClientProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=97c1e122:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+Rendered more hooks than during the previous render.

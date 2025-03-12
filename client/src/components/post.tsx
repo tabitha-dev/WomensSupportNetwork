@@ -20,10 +20,9 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PostSkeleton } from "./post-skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
+import { ErrorBoundary } from "./error-boundary";
 
 type PostProps = {
   post: Post;
@@ -49,14 +48,15 @@ export default function PostComponent({ post: initialPost }: PostProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // All state hooks
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(initialPost.content);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState("");
-
-  // Track post state locally for optimistic updates
   const [post, setPost] = useState(initialPost);
 
+  // All query hooks
   const { 
     data: author,
     isLoading: isLoadingAuthor,
@@ -64,21 +64,6 @@ export default function PostComponent({ post: initialPost }: PostProps) {
   } = useQuery<User>({
     queryKey: [`/api/users/${initialPost.userId}`],
   });
-
-  if (isLoadingAuthor) {
-    return <PostSkeleton />;
-  }
-
-  if (authorError) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Failed to load post author: {authorError.message}
-        </AlertDescription>
-      </Alert>
-    );
-  }
 
   const { data: comments = [], isLoading: isLoadingComments } = useQuery<Comment[]>({
     queryKey: [`/api/posts/${post.id}/comments`],
@@ -94,6 +79,7 @@ export default function PostComponent({ post: initialPost }: PostProps) {
     queryKey: [`/api/posts/${post.id}/liked`],
   });
 
+  // All mutation hooks
   const deletePostMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("DELETE", `/api/posts/${post.id}`);
@@ -204,6 +190,25 @@ export default function PostComponent({ post: initialPost }: PostProps) {
 
   const canEdit = currentUser?.id === post.userId;
 
+  // Handle loading and error states after all hooks
+  if (isLoadingAuthor) {
+    return <PostSkeleton />;
+  }
+
+  if (authorError) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Failed to load post author: {authorError.message}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!author) {
+    return null;
+  }
 
   return (
     <ErrorBoundary>
