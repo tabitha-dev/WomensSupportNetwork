@@ -48,6 +48,13 @@ export interface IStorage {
   getPostReactions(postId: number): Promise<Reaction[]>;
   addReaction(userId: number, postId: number, emoji: string): Promise<Reaction>;
   removeReaction(userId: number, postId: number, emoji: string): Promise<void>;
+  getUserGroupPosts(userId: number): Promise<Post[]>;
+  getUserStats(userId: number): Promise<{
+    postCount: number;
+    friendCount: number;
+    followerCount: number;
+    followingCount: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -184,7 +191,7 @@ export class DatabaseStorage implements IStorage {
         ))
         .returning();
 
-      console.log('Updated post:', post); 
+      console.log('Updated post:', post);
       return post;
     } catch (error) {
       console.error('Error updating post:', error);
@@ -250,7 +257,7 @@ export class DatabaseStorage implements IStorage {
         userId: comments.userId,
         postId: comments.postId
       })
-      .from(comments)      
+      .from(comments)
       .where(eq(comments.postId, postId))
       .orderBy(comments.createdAt);
 
@@ -298,8 +305,8 @@ export class DatabaseStorage implements IStorage {
 
       await tx
         .update(posts)
-        .set({ 
-          likeCount: sql`${posts.likeCount} + 1` 
+        .set({
+          likeCount: sql`${posts.likeCount} + 1`
         })
         .where(eq(posts.id, postId));
     });
@@ -318,8 +325,8 @@ export class DatabaseStorage implements IStorage {
 
       await tx
         .update(posts)
-        .set({ 
-          likeCount: sql`${posts.likeCount} - 1` 
+        .set({
+          likeCount: sql`${posts.likeCount} - 1`
         })
         .where(eq(posts.id, postId));
     });
@@ -375,9 +382,9 @@ export class DatabaseStorage implements IStorage {
       .where(eq(friendRequests.receiverId, userId))
       .innerJoin(users, eq(friendRequests.senderId, users.id));
 
-    return result.map((r) => ({ 
-      sender: r.sender, 
-      status: r.status || 'pending' 
+    return result.map((r) => ({
+      sender: r.sender,
+      status: r.status || 'pending'
     }));
   }
 
@@ -617,6 +624,88 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error removing reaction:', error);
       throw error;
+    }
+  }
+
+  async getUserGroupPosts(userId: number): Promise<Post[]> {
+    try {
+      // Get user's groups first
+      const userGroups = await this.getUserGroups(userId);
+      const groupIds = userGroups.map(group => group.id);
+
+      if (groupIds.length === 0) {
+        return [];
+      }
+
+      // Get posts from all user's groups
+      const groupPosts = await db
+        .select({
+          id: posts.id,
+          content: posts.content,
+          userId: posts.userId,
+          groupId: posts.groupId,
+          imageUrl: posts.imageUrl,
+          videoUrl: posts.videoUrl,
+          postType: posts.postType,
+          createdAt: posts.createdAt,
+          likeCount: posts.likeCount
+        })
+        .from(posts)
+        .where(sql`${posts.groupId} = ANY(${groupIds}::int[])`)
+        .orderBy(desc(posts.createdAt));
+
+      return groupPosts;
+    } catch (error) {
+      console.error('Error fetching user group posts:', error);
+      return [];
+    }
+  }
+
+  async getUserStats(userId: number): Promise<{
+    postCount: number;
+    friendCount: number;
+    followerCount: number;
+    followingCount: number;
+  }> {
+    try {
+      const [
+        postCount,
+        friendCount,
+        followerCount,
+        followingCount
+      ] = await Promise.all([
+        db.select({ count: sql<number>`count(*)::int` })
+          .from(posts)
+          .where(eq(posts.userId, userId))
+          .then(result => result[0].count),
+        db.select({ count: sql<number>`count(*)::int` })
+          .from(friendships)
+          .where(eq(friendships.userId, userId))
+          .then(result => result[0].count),
+        db.select({ count: sql<number>`count(*)::int` })
+          .from(followers)
+          .where(eq(followers.followingId, userId))
+          .then(result => result[0].count),
+        db.select({ count: sql<number>`count(*)::int` })
+          .from(followers)
+          .where(eq(followers.followerId, userId))
+          .then(result => result[0].count)
+      ]);
+
+      return {
+        postCount,
+        friendCount,
+        followerCount,
+        followingCount
+      };
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      return {
+        postCount: 0,
+        friendCount: 0,
+        followerCount: 0,
+        followingCount: 0
+      };
     }
   }
 }

@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { User, Post } from "@shared/schema";
+import { User, Post, Group } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,42 +86,46 @@ export default function ProfilePage() {
     }
   }, [user]);
 
+  // Add friend queries back and fix stats typing
+  const { data: friends = [], isLoading: isLoadingFriends } = useQuery<User[]>({
+    queryKey: [`/api/users/${userId}/friends`],
+    enabled: !!userId,
+  });
+
+  const { data: userGroups = [], isLoading: isLoadingGroups } = useQuery<Group[]>({
+    queryKey: [`/api/users/${userId}/groups`],
+    enabled: !!userId,
+  });
+
+  type UserStats = {
+    postCount: number;
+    friendCount: number;
+    followerCount: number;
+    followingCount: number;
+  };
+
+  const { data: stats, isLoading: isLoadingStats } = useQuery<UserStats>({
+    queryKey: [`/api/users/${userId}/stats`],
+    enabled: !!userId,
+  });
+
   // Query posts and group posts
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/posts`],
     enabled: !!userId,
   });
 
+
+  // Ensure group posts are correctly fetched
   const { data: groupPosts = [], isLoading: isLoadingGroupPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/group-posts`],
-    enabled: !!userId,
-  });
-
-  // Query user relationships
-  const { data: friends = [], isLoading: isLoadingFriends } = useQuery<User[]>({
-    queryKey: [`/api/users/${userId}/friends`],
-    enabled: !!userId,
-  });
-
-  const { data: followers = [], isLoading: isLoadingFollowers } = useQuery<User[]>({
-    queryKey: [`/api/users/${userId}/followers`],
-    enabled: !!userId,
-  });
-
-  const { data: following = [], isLoading: isLoadingFollowing } = useQuery<User[]>({
-    queryKey: [`/api/users/${userId}/following`],
-    enabled: !!userId,
-  });
-
-  const { data: userGroups = [], isLoading: isLoadingGroups } = useQuery({
-    queryKey: [`/api/users/${userId}/groups`],
     enabled: !!userId,
   });
 
   // Combine all posts
   const allPosts = useMemo(() => {
     const combinedPosts = [...(posts || []), ...(groupPosts || [])];
-    return combinedPosts.sort((a, b) => 
+    return combinedPosts.sort((a, b) =>
       new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
     );
   }, [posts, groupPosts]);
@@ -406,50 +410,52 @@ export default function ProfilePage() {
               <CardHeader>
                 <CardTitle>Stats</CardTitle>
               </CardHeader>
+              {/* Update stats section */}
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Posts</span>
                     <span className="text-2xl font-bold">
-                      {isLoadingPosts || isLoadingGroupPosts ? (
+                      {isLoadingStats ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
-                        allPosts.length
+                        stats.postCount
                       )}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Friends</span>
                     <span className="text-2xl font-bold">
-                      {isLoadingFriends ? (
+                      {isLoadingStats ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
-                        friends.length
+                        stats.friendCount
                       )}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Followers</span>
                     <span className="text-2xl font-bold">
-                      {isLoadingFollowers ? (
+                      {isLoadingStats ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
-                        followers.length
+                        stats.followerCount
                       )}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Following</span>
                     <span className="text-2xl font-bold">
-                      {isLoadingFollowing ? (
+                      {isLoadingStats ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
-                        following.length
+                        stats.followingCount
                       )}
                     </span>
                   </div>
                 </div>
               </CardContent>
+
             </Card>
 
             {/* Main Content Area */}

@@ -295,6 +295,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add new routes for group posts and user stats
+  app.get("/api/users/:id/group-posts", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const posts = await storage.getUserGroupPosts(userId);
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching user group posts:", error);
+      res.status(500).json({ error: "Failed to fetch user group posts" });
+    }
+  });
+
+  app.get("/api/users/:id/stats", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const stats = await storage.getUserStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      res.status(500).json({ error: "Failed to fetch user stats" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
