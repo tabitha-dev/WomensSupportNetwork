@@ -53,6 +53,12 @@ export default function ProfilePage() {
     fontFamily: '',
   });
 
+  // Add field-specific state
+  const [locationInput, setLocationInput] = useState(user?.location || "");
+  const [occupationInput, setOccupationInput] = useState(user?.occupation || "");
+  const [interestsInput, setInterestsInput] = useState(user?.interests || "");
+
+
   const { data: user, isLoading: isLoadingUser } = useQuery<User>({
     queryKey: [`/api/users/${userId}`],
     enabled: !!userId,
@@ -69,6 +75,9 @@ export default function ProfilePage() {
           accentColor: data.accentColor || '',
           fontFamily: data.fontFamily || '',
         });
+        setLocationInput(data.location || "");
+        setOccupationInput(data.occupation || "");
+        setInterestsInput(data.interests || "");
       }
     },
   });
@@ -77,6 +86,17 @@ export default function ProfilePage() {
     queryKey: [`/api/users/${userId}/posts`],
     enabled: !!userId,
   });
+
+  // Add group posts query
+  const { data: groupPosts = [], isLoading: isLoadingGroupPosts } = useQuery<Post[]>({
+    queryKey: [`/api/users/${userId}/group-posts`],
+    enabled: !!userId,
+  });
+
+  // Combine posts and group posts
+  const allPosts = [...posts, ...groupPosts].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   const { data: friends = [] } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/friends`],
@@ -126,6 +146,82 @@ export default function ProfilePage() {
     setFormData(prev => ({ ...prev, [field]: value }));
     updateProfileMutation.mutate({ [field]: value });
   };
+
+  // Handle individual field updates
+  const handleFieldUpdate = (field: string, value: string) => {
+    updateProfileMutation.mutate({ [field]: value });
+  };
+
+  // About section content
+  const renderAboutContent = () => (
+    <Card>
+      <CardContent className="space-y-4 p-6">
+        <div>
+          <h3 className="text-lg font-semibold mb-2">About Me</h3>
+          {isEditing ? (
+            <Textarea
+              value={formData.bio}
+              onChange={(e) => handleInputChange('bio', e.target.value)}
+              placeholder="Tell us about yourself"
+              className="min-h-[100px]"
+            />
+          ) : (
+            <p className="text-muted-foreground">{user?.bio || "No bio added yet"}</p>
+          )}
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Interests</h3>
+          {isEditing ? (
+            <Textarea
+              value={interestsInput}
+              onChange={(e) => {
+                setInterestsInput(e.target.value);
+                handleFieldUpdate('interests', e.target.value);
+              }}
+              placeholder="What are your interests?"
+              className="min-h-[100px]"
+            />
+          ) : (
+            <p className="text-muted-foreground">{user?.interests || "No interests added yet"}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <h3 className="font-semibold mb-2">Location</h3>
+            {isEditing ? (
+              <Input
+                value={locationInput}
+                onChange={(e) => {
+                  setLocationInput(e.target.value);
+                  handleFieldUpdate('location', e.target.value);
+                }}
+                placeholder="Your location"
+              />
+            ) : (
+              <p className="text-muted-foreground">{user?.location || "Not specified"}</p>
+            )}
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2">Occupation</h3>
+            {isEditing ? (
+              <Input
+                value={occupationInput}
+                onChange={(e) => {
+                  setOccupationInput(e.target.value);
+                  handleFieldUpdate('occupation', e.target.value);
+                }}
+                placeholder="Your occupation"
+              />
+            ) : (
+              <p className="text-muted-foreground">{user?.occupation || "Not specified"}</p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   // Parse social links from JSON string
   const socialLinks = user?.socialLinks ? JSON.parse(user.socialLinks) : {};
@@ -376,14 +472,14 @@ export default function ProfilePage() {
 
                 <TabsContent value="tab-posts" className="mt-6">
                   <div className="space-y-4">
-                    {isLoadingPosts ? (
+                    {(isLoadingPosts || isLoadingGroupPosts) ? (
                       <div className="flex justify-center p-4">
                         <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
-                    ) : posts?.map((post) => (
+                    ) : allPosts?.map((post) => (
                       <PostComponent key={`user-post-${post.id}`} post={post} />
                     ))}
-                    {(!posts || posts.length === 0) && !isLoadingPosts && (
+                    {(!allPosts || allPosts.length === 0) && !isLoadingPosts && !isLoadingGroupPosts && (
                       <Card>
                         <CardContent className="p-8 text-center text-muted-foreground">
                           No posts yet
@@ -394,30 +490,7 @@ export default function ProfilePage() {
                 </TabsContent>
 
                 <TabsContent value="tab-about" className="mt-6">
-                  <Card>
-                    <CardContent className="space-y-4 p-6">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">About Me</h3>
-                        <p className="text-muted-foreground">{user.bio || "No bio added yet"}</p>
-                      </div>
-                      {user.interests && (
-                        <div>
-                          <h3 className="text-lg font-semibold mb-2">Interests</h3>
-                          <p className="text-muted-foreground">{user.interests}</p>
-                        </div>
-                      )}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <h3 className="font-semibold mb-2">Location</h3>
-                          <p className="text-muted-foreground">{user.location || "Not specified"}</p>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold mb-2">Occupation</h3>
-                          <p className="text-muted-foreground">{user.occupation || "Not specified"}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {renderAboutContent()}
                 </TabsContent>
 
                 <TabsContent value="tab-friends" className="mt-6">
