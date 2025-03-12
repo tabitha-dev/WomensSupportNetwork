@@ -179,6 +179,8 @@ export class DatabaseStorage implements IStorage {
           eq(posts.userId, userId)
         ))
         .returning();
+
+      console.log('Updated post:', post); 
       return post;
     } catch (error) {
       console.error('Error updating post:', error);
@@ -518,6 +520,7 @@ export class DatabaseStorage implements IStorage {
         ));
 
       if (!post) {
+        console.log('Post not found or unauthorized');
         return false;
       }
 
@@ -539,6 +542,7 @@ export class DatabaseStorage implements IStorage {
           .where(eq(posts.id, postId));
       });
 
+      console.log('Post successfully deleted');
       return true;
     } catch (error) {
       console.error('Error deleting post:', error);

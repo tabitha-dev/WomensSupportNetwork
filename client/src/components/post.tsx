@@ -18,6 +18,7 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 type PostProps = {
   post: Post;
@@ -42,6 +43,7 @@ function getYouTubeEmbedUrl(url: string) {
 
 export default function PostComponent({ post }: PostProps) {
   const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(post.content);
   const [showComments, setShowComments] = useState(false);
@@ -68,11 +70,18 @@ export default function PostComponent({ post }: PostProps) {
       }
     },
     onSuccess: () => {
-      // Invalidate both group posts and user posts queries
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
-      if (author) {
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${author.id}/posts`] });
-      }
+      toast({
+        title: "Success",
+        description: "Post deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete post: " + error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -86,10 +95,18 @@ export default function PostComponent({ post }: PostProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
-      if (author) {
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${author.id}/posts`] });
-      }
       setIsEditing(false);
+      toast({
+        title: "Success",
+        description: "Post updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update post: " + error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -101,7 +118,6 @@ export default function PostComponent({ post }: PostProps) {
       }
     },
     onSuccess: () => {
-      // Invalidate both the like status and the group posts to update counts
       queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/liked`] });
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
     },
@@ -160,7 +176,11 @@ export default function PostComponent({ post }: PostProps) {
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive/90"
-                      onClick={() => deletePostMutation.mutate()}
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this post?')) {
+                          deletePostMutation.mutate();
+                        }
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -182,7 +202,7 @@ export default function PostComponent({ post }: PostProps) {
                 <Button
                   size="sm"
                   onClick={() => updatePostMutation.mutate()}
-                  disabled={updatePostMutation.isPending}
+                  disabled={updatePostMutation.isPending || !editedContent.trim()}
                 >
                   Save
                 </Button>

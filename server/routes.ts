@@ -13,32 +13,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
 
-  // File upload endpoints
-  app.post("/api/users/avatar", upload.single("avatar"), async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-      const user = await storage.updateUser(req.user!.id, { avatarUrl });
-
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const { password, ...safeUser } = user;
-      res.json(safeUser);
-    } catch (error) {
-      console.error("Error uploading avatar:", error);
-      res.status(500).json({ error: "Failed to upload avatar" });
-    }
-  });
-
   // Serve uploaded files
   app.use("/uploads", express.static("uploads"));
 
@@ -143,9 +117,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const postId = parseInt(req.params.id);
       const post = await storage.updatePost(postId, req.user!.id, req.body.content);
+      
       if (!post) {
         return res.status(404).json({ error: "Post not found or unauthorized" });
       }
+      
       res.json(post);
     } catch (error) {
       console.error("Error updating post:", error);
@@ -153,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Post comments
+  // Get post comments
   app.get("/api/posts/:id/comments", async (req, res) => {
     try {
       const comments = await storage.getPostComments(parseInt(req.params.id));
@@ -164,6 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add comment to post
   app.post("/api/posts/:id/comments", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
@@ -182,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Post likes
+  // Like/unlike post
   app.post("/api/posts/:id/like", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
@@ -203,6 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check if user liked post
   app.get("/api/posts/:id/liked", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
