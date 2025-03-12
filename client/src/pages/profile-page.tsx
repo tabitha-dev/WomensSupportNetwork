@@ -52,6 +52,7 @@ export default function ProfilePage() {
     textColor: '',
     accentColor: '',
     fontFamily: '',
+    socialLinks: ''
   });
 
   const { data: user, isLoading: isLoadingUser } = useQuery<User>({
@@ -69,6 +70,7 @@ export default function ProfilePage() {
           textColor: data.textColor || '',
           accentColor: data.accentColor || '',
           fontFamily: data.fontFamily || '',
+          socialLinks: data.socialLinks || '{}'
         });
       }
     },
@@ -151,25 +153,48 @@ export default function ProfilePage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Update social links handler
+  const handleSocialLinkChange = (platform: string, url: string) => {
+    const currentLinks = formData.socialLinks ? JSON.parse(formData.socialLinks) : {};
+    const newLinks = { ...currentLinks, [platform]: url };
+    setFormData(prev => ({
+      ...prev,
+      socialLinks: JSON.stringify(newLinks)
+    }));
+  };
+
   const handleSubmit = async () => {
     try {
       await updateProfileMutation.mutateAsync(formData);
       setIsEditing(false);
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
     } catch (error) {
       console.error('Failed to update profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile settings",
+        variant: "destructive",
+      });
     }
   };
 
   // Parse social links from JSON string
-  const socialLinks = user?.socialLinks ? JSON.parse(user.socialLinks) : {};
+  const socialLinks = formData.socialLinks ? JSON.parse(formData.socialLinks) : {};
 
-  // Social media update handler
-  const updateSocialLinks = (platform: string, url: string) => {
-    const newSocialLinks = { ...socialLinks, [platform]: url };
-    updateProfileMutation.mutate({
-      socialLinks: JSON.stringify(newSocialLinks)
-    });
+
+  // Apply custom styles if they exist
+  const customStyles = {
+    backgroundColor: user?.backgroundColor || undefined,
+    color: user?.textColor || undefined,
+    fontFamily: user?.fontFamily || undefined,
   };
+
+  const accentStyles = {
+    "--accent-color": user?.accentColor || "hsl(var(--primary))",
+  } as React.CSSProperties;
 
   if (isLoadingUser || isLoadingPosts) {
     return (
@@ -182,17 +207,6 @@ export default function ProfilePage() {
   if (!user) {
     return <div>User not found</div>;
   }
-
-  // Apply custom styles if they exist
-  const customStyles = {
-    backgroundColor: user.backgroundColor || undefined,
-    color: user.textColor || undefined,
-    fontFamily: user.fontFamily || undefined,
-  };
-
-  const accentStyles = {
-    "--accent-color": user.accentColor || "hsl(var(--primary))",
-  } as React.CSSProperties;
 
   return (
     <div className="min-h-screen" style={customStyles}>
@@ -303,7 +317,7 @@ export default function ProfilePage() {
                               <Input
                                 placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`}
                                 value={socialLinks[platform] || ""}
-                                onChange={(e) => updateSocialLinks(platform, e.target.value)}
+                                onChange={(e) => handleSocialLinkChange(platform, e.target.value)}
                               />
                             </div>
                           ))}
