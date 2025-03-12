@@ -40,12 +40,6 @@ export default function ProfilePage() {
   const isOwnProfile = currentUser?.id === userId;
   const [isEditing, setIsEditing] = useState(false);
 
-  // Query user data first
-  const { data: user, isLoading: isLoadingUser } = useQuery<User>({
-    queryKey: [`/api/users/${userId}`],
-    enabled: !!userId,
-  });
-
   // Initialize form state
   const [formData, setFormData] = useState({
     displayName: '',
@@ -57,12 +51,19 @@ export default function ProfilePage() {
     textColor: '',
     accentColor: '',
     fontFamily: '',
+    interests: ''
   });
 
   // Initialize field-specific state
   const [locationInput, setLocationInput] = useState("");
   const [occupationInput, setOccupationInput] = useState("");
   const [interestsInput, setInterestsInput] = useState("");
+
+  // Query user data first
+  const { data: user, isLoading: isLoadingUser } = useQuery<User>({
+    queryKey: [`/api/users/${userId}`],
+    enabled: !!userId,
+  });
 
   // Update form data when user data changes
   useEffect(() => {
@@ -77,6 +78,7 @@ export default function ProfilePage() {
         textColor: user.textColor || '',
         accentColor: user.accentColor || '',
         fontFamily: user.fontFamily || '',
+        interests: user.interests || ''
       });
       setLocationInput(user.location || "");
       setOccupationInput(user.occupation || "");
@@ -94,14 +96,6 @@ export default function ProfilePage() {
     queryKey: [`/api/users/${userId}/group-posts`],
     enabled: !!userId,
   });
-
-  // Combine and sort all posts
-  const allPosts = useMemo(() => {
-    const combinedPosts = [...(posts || []), ...(groupPosts || [])];
-    return combinedPosts.sort((a, b) => 
-      new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
-    );
-  }, [posts, groupPosts]);
 
   // Query user relationships
   const { data: friends = [], isLoading: isLoadingFriends } = useQuery<User[]>({
@@ -123,6 +117,14 @@ export default function ProfilePage() {
     queryKey: [`/api/users/${userId}/groups`],
     enabled: !!userId,
   });
+
+  // Combine all posts
+  const allPosts = useMemo(() => {
+    const combinedPosts = [...(posts || []), ...(groupPosts || [])];
+    return combinedPosts.sort((a, b) => 
+      new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
+    );
+  }, [posts, groupPosts]);
 
   // Handle profile updates
   const updateProfileMutation = useMutation({
@@ -158,88 +160,6 @@ export default function ProfilePage() {
     updateProfileMutation.mutate({ [field]: value });
   };
 
-  // About section content
-  const renderAboutContent = () => (
-    <Card>
-      <CardContent className="space-y-4 p-6">
-        <div>
-          <h3 className="text-lg font-semibold mb-2">About Me</h3>
-          {isEditing ? (
-            <Textarea
-              value={formData.bio}
-              onChange={(e) => handleInputChange('bio', e.target.value)}
-              placeholder="Tell us about yourself"
-              className="min-h-[100px]"
-            />
-          ) : (
-            <p className="text-muted-foreground">{user?.bio || "No bio added yet"}</p>
-          )}
-        </div>
-
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Interests</h3>
-          {isEditing ? (
-            <Textarea
-              value={interestsInput}
-              onChange={(e) => {
-                setInterestsInput(e.target.value);
-                handleFieldUpdate('interests', e.target.value);
-              }}
-              placeholder="What are your interests?"
-              className="min-h-[100px]"
-            />
-          ) : (
-            <p className="text-muted-foreground">{user?.interests || "No interests added yet"}</p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-semibold mb-2">Location</h3>
-            {isEditing ? (
-              <Input
-                value={locationInput}
-                onChange={(e) => {
-                  setLocationInput(e.target.value);
-                  handleFieldUpdate('location', e.target.value);
-                }}
-                placeholder="Your location"
-              />
-            ) : (
-              <p className="text-muted-foreground">{user?.location || "Not specified"}</p>
-            )}
-          </div>
-          <div>
-            <h3 className="font-semibold mb-2">Occupation</h3>
-            {isEditing ? (
-              <Input
-                value={occupationInput}
-                onChange={(e) => {
-                  setOccupationInput(e.target.value);
-                  handleFieldUpdate('occupation', e.target.value);
-                }}
-                placeholder="Your occupation"
-              />
-            ) : (
-              <p className="text-muted-foreground">{user?.occupation || "Not specified"}</p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  // Parse social links from JSON string
-  const socialLinks = user?.socialLinks ? JSON.parse(user.socialLinks) : {};
-
-  // Social media update handler
-  const updateSocialLinks = (platform: string, url: string) => {
-    const newSocialLinks = { ...socialLinks, [platform]: url };
-    updateProfileMutation.mutate({
-      socialLinks: JSON.stringify(newSocialLinks)
-    });
-  };
-
   // Loading state
   if (isLoadingUser) {
     return (
@@ -253,6 +173,17 @@ export default function ProfilePage() {
     return <div>User not found</div>;
   }
 
+  // Parse social links from JSON string
+  const socialLinks = user.socialLinks ? JSON.parse(user.socialLinks) : {};
+
+  // Social media update handler
+  const updateSocialLinks = (platform: string, url: string) => {
+    const newSocialLinks = { ...socialLinks, [platform]: url };
+    updateProfileMutation.mutate({
+      socialLinks: JSON.stringify(newSocialLinks)
+    });
+  };
+
   // Apply custom styles if they exist
   const customStyles = {
     backgroundColor: user.backgroundColor || undefined,
@@ -263,12 +194,13 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen" style={customStyles}>
       <div className="container mx-auto p-4 space-y-6">
+        {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <Card className="glass-card overflow-hidden">
+          <Card className="overflow-hidden">
             <div
               className="h-48 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20"
               style={
@@ -307,6 +239,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              {/* Profile Content */}
               <div className="mt-4 space-y-4">
                 {isEditing ? (
                   <div className="space-y-4">
@@ -315,9 +248,7 @@ export default function ProfilePage() {
                       <Input
                         placeholder="Display Name"
                         value={formData.displayName}
-                        onChange={(e) =>
-                          handleInputChange('displayName', e.target.value)
-                        }
+                        onChange={(e) => handleInputChange('displayName', e.target.value)}
                       />
                     </div>
                     <div>
@@ -326,6 +257,39 @@ export default function ProfilePage() {
                         placeholder="Bio"
                         value={formData.bio}
                         onChange={(e) => handleInputChange('bio', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Location</label>
+                      <Input
+                        value={locationInput}
+                        onChange={(e) => {
+                          setLocationInput(e.target.value);
+                          handleFieldUpdate('location', e.target.value);
+                        }}
+                        placeholder="Your location"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Occupation</label>
+                      <Input
+                        value={occupationInput}
+                        onChange={(e) => {
+                          setOccupationInput(e.target.value);
+                          handleFieldUpdate('occupation', e.target.value);
+                        }}
+                        placeholder="Your occupation"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Interests</label>
+                      <Textarea
+                        value={interestsInput}
+                        onChange={(e) => {
+                          setInterestsInput(e.target.value);
+                          handleFieldUpdate('interests', e.target.value);
+                        }}
+                        placeholder="Your interests"
                       />
                     </div>
                     <div>
@@ -363,14 +327,6 @@ export default function ProfilePage() {
                           />
                         </div>
                         <div>
-                          <label className="text-sm font-medium">Accent Color</label>
-                          <Input
-                            type="color"
-                            value={formData.accentColor}
-                            onChange={(e) => handleInputChange('accentColor', e.target.value)}
-                          />
-                        </div>
-                        <div>
                           <label className="text-sm font-medium">Font Family</label>
                           <select
                             className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md"
@@ -394,6 +350,30 @@ export default function ProfilePage() {
                     <p className="text-muted-foreground">@{user.username}</p>
                     {user.bio && <p className="text-foreground/90">{user.bio}</p>}
 
+                    {/* Location and Occupation */}
+                    <div className="flex flex-wrap gap-4 mt-4 text-sm text-muted-foreground">
+                      {user.location && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          {user.location}
+                        </div>
+                      )}
+                      {user.occupation && (
+                        <div className="flex items-center gap-1">
+                          <Briefcase className="h-4 w-4" />
+                          {user.occupation}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Interests */}
+                    {user.interests && (
+                      <div className="mt-4">
+                        <h3 className="text-lg font-semibold mb-2">Interests</h3>
+                        <p className="text-muted-foreground">{user.interests}</p>
+                      </div>
+                    )}
+
                     {/* Social Links */}
                     {Object.entries(socialLinks).length > 0 && (
                       <div className="flex gap-4 mt-4">
@@ -413,37 +393,16 @@ export default function ProfilePage() {
                         })}
                       </div>
                     )}
-
-                    <div className="flex flex-wrap gap-4 mt-4 text-sm text-muted-foreground">
-                      {user.location && (
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {user.location}
-                        </div>
-                      )}
-                      {user.occupation && (
-                        <div className="flex items-center gap-1">
-                          <Briefcase className="h-4 w-4" />
-                          {user.occupation}
-                        </div>
-                      )}
-                    </div>
-
-                    {user.favoriteQuote && (
-                      <div className="flex items-center gap-2 mt-4 italic text-muted-foreground">
-                        <Quote className="h-4 w-4" />
-                        "{user.favoriteQuote}"
-                      </div>
-                    )}
                   </>
                 )}
               </div>
             </CardContent>
           </Card>
 
+          {/* Stats and Content */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
-            {/* Stats Cards */}
-            <Card className="col-span-full md:col-span-1">
+            {/* Stats Card */}
+            <Card>
               <CardHeader>
                 <CardTitle>Stats</CardTitle>
               </CardHeader>
@@ -503,14 +462,15 @@ export default function ProfilePage() {
                   <TabsTrigger value="tab-groups">Groups</TabsTrigger>
                 </TabsList>
 
+                {/* Posts Tab */}
                 <TabsContent value="tab-posts" className="mt-6">
                   <div className="space-y-4">
                     {(isLoadingPosts || isLoadingGroupPosts) ? (
                       <div className="flex justify-center p-4">
                         <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
-                    ) : allPosts?.map((post) => (
-                      <PostComponent key={`user-post-${post.id}`} post={post} />
+                    ) : allPosts.map((post) => (
+                      <PostComponent key={`post-${post.id}`} post={post} />
                     ))}
                     {(!allPosts || allPosts.length === 0) && !isLoadingPosts && !isLoadingGroupPosts && (
                       <Card>
@@ -522,13 +482,85 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
+                {/* About Tab */}
                 <TabsContent value="tab-about" className="mt-6">
-                  {renderAboutContent()}
+                  <Card>
+                    <CardContent className="space-y-4 p-6">
+                      <div>
+                        <h3 className="text-lg font-semibold mb-2">About Me</h3>
+                        {isEditing ? (
+                          <Textarea
+                            value={formData.bio}
+                            onChange={(e) => handleInputChange('bio', e.target.value)}
+                            placeholder="Tell us about yourself"
+                            className="min-h-[100px]"
+                          />
+                        ) : (
+                          <p className="text-muted-foreground">{user?.bio || "No bio added yet"}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <h3 className="text-lg font-semibold mb-2">Interests</h3>
+                        {isEditing ? (
+                          <Textarea
+                            value={interestsInput}
+                            onChange={(e) => {
+                              setInterestsInput(e.target.value);
+                              handleFieldUpdate('interests', e.target.value);
+                            }}
+                            placeholder="What are your interests?"
+                            className="min-h-[100px]"
+                          />
+                        ) : (
+                          <p className="text-muted-foreground">{user?.interests || "No interests added yet"}</p>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="font-semibold mb-2">Location</h3>
+                          {isEditing ? (
+                            <Input
+                              value={locationInput}
+                              onChange={(e) => {
+                                setLocationInput(e.target.value);
+                                handleFieldUpdate('location', e.target.value);
+                              }}
+                              placeholder="Your location"
+                            />
+                          ) : (
+                            <p className="text-muted-foreground">{user?.location || "Not specified"}</p>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold mb-2">Occupation</h3>
+                          {isEditing ? (
+                            <Input
+                              value={occupationInput}
+                              onChange={(e) => {
+                                setOccupationInput(e.target.value);
+                                handleFieldUpdate('occupation', e.target.value);
+                              }}
+                              placeholder="Your occupation"
+                            />
+                          ) : (
+                            <p className="text-muted-foreground">{user?.occupation || "Not specified"}</p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
+                {/* Friends Tab */}
                 <TabsContent value="tab-friends" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {friends?.map((friend) => (
+                    {isLoadingFriends ? (
+                      <div className="col-span-full flex justify-center p-4">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                    ) : friends.map((friend) => (
                       <Card key={`friend-${friend.id}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
@@ -551,7 +583,7 @@ export default function ProfilePage() {
                         </CardContent>
                       </Card>
                     ))}
-                    {(!friends || friends.length === 0) && (
+                    {(!friends || friends.length === 0) && !isLoadingFriends && (
                       <Card className="col-span-full">
                         <CardContent className="p-8 text-center text-muted-foreground">
                           No friends yet
@@ -561,10 +593,15 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
+                {/* Groups Tab */}
                 <TabsContent value="tab-groups" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {Array.isArray(userGroups) && userGroups.map((group, index) => (
-                      <Card key={`profile-group-${group.id || index}`} className="overflow-hidden">
+                    {isLoadingGroups ? (
+                      <div className="col-span-full flex justify-center p-4">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                    ) : userGroups.map((group) => (
+                      <Card key={`profile-group-${group.id}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             {group.iconUrl && (
@@ -584,7 +621,7 @@ export default function ProfilePage() {
                         </CardContent>
                       </Card>
                     ))}
-                    {(!Array.isArray(userGroups) || userGroups.length === 0) && (
+                    {(!userGroups || userGroups.length === 0) && !isLoadingGroups && (
                       <Card className="col-span-full">
                         <CardContent className="p-8 text-center text-muted-foreground">
                           Not a member of any groups yet
