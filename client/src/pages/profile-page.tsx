@@ -15,6 +15,7 @@ import {
   UserMinus,
   Users,
   Loader2,
+  ImagePlus,
 } from "lucide-react";
 import PostComponent from "@/components/post";
 import { motion } from "framer-motion";
@@ -155,6 +156,18 @@ export default function ProfilePage() {
     updateProfileMutation.mutate({ [field]: value });
   };
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        updateProfileMutation.mutate({ avatarUrl: base64String });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   if (isLoadingUser) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -205,15 +218,32 @@ export default function ProfilePage() {
             />
             <CardContent className="relative px-6 pb-6">
               <div className="flex justify-between items-end -mt-12">
-                <Avatar className="h-24 w-24 border-4 border-background">
-                  {user.avatarUrl ? (
-                    <AvatarImage src={user.avatarUrl} alt={user.displayName} />
-                  ) : (
-                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                      {user.displayName?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
+                <div className="relative group">
+                  <Avatar className="h-24 w-24 border-4 border-background">
+                    {user.avatarUrl ? (
+                      <AvatarImage src={user.avatarUrl} alt={user.displayName} />
+                    ) : (
+                      <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                        {user.displayName?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  {isOwnProfile && (
+                    <label
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
+                      htmlFor="avatar-upload"
+                    >
+                      <ImagePlus className="h-6 w-6 text-white" />
+                      <input
+                        type="file"
+                        id="avatar-upload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                      />
+                    </label>
                   )}
-                </Avatar>
+                </div>
                 <div className="flex gap-2">
                   {isOwnProfile && (
                     <Button
@@ -582,8 +612,8 @@ export default function ProfilePage() {
                         <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
                     ) : userGroups.map((group, index) => (
-                      <Card 
-                        key={`profile-group-${group.id}-${index}`} 
+                      <Card
+                        key={`profile-group-${group.id}-${index}`}
                         className="overflow-hidden"
                       >
                         <CardContent className="p-4">
