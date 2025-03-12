@@ -21,21 +21,16 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
-type PostFormData = {
-  content: string;
-  postType: "text" | "image" | "video";
-  mediaUrl?: string;
-};
-
-type ChatFormData = {
-  message: string;
-};
-
 export default function GroupPage() {
   const params = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
-  const groupId = parseInt(params.id || "");
+  const groupId = params.groupId ? parseInt(params.groupId) : null;
+
+  const { data: group, isLoading, error } = useQuery<GroupWithRelations>({
+    queryKey: [`/api/groups/${groupId}`],
+    enabled: !!groupId && !isNaN(groupId),
+  });
 
   const postForm = useForm<PostFormData>({
     defaultValues: {
@@ -48,12 +43,6 @@ export default function GroupPage() {
     defaultValues: {
       message: "",
     },
-  });
-
-  const { data: group, isLoading, error } = useQuery<GroupWithRelations>({
-    queryKey: [`/api/groups/${groupId}`],
-    enabled: !isNaN(groupId),
-    retry: 3,
   });
 
   const createPostMutation = useMutation({
@@ -125,14 +114,17 @@ export default function GroupPage() {
     );
   }
 
-  if (error) {
+  if (!groupId || isNaN(groupId) || error) {
     return (
       <Card className="mt-8">
         <CardContent className="p-8 text-center">
-          <h2 className="text-2xl font-semibold mb-2">Error Loading Group</h2>
+          <h2 className="text-2xl font-semibold mb-2">Group Not Found</h2>
           <p className="text-muted-foreground">
-            There was an error loading the group. Please try again later.
+            The group you're looking for doesn't exist or has been removed.
           </p>
+          <Button variant="outline" className="mt-4" onClick={() => window.history.back()}>
+            Go Back
+          </Button>
         </CardContent>
       </Card>
     );
@@ -386,3 +378,13 @@ export default function GroupPage() {
     </div>
   );
 }
+
+type PostFormData = {
+  content: string;
+  postType: "text" | "image" | "video";
+  mediaUrl?: string;
+};
+
+type ChatFormData = {
+  message: string;
+};

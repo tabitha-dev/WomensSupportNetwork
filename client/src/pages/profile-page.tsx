@@ -38,7 +38,7 @@ export default function ProfilePage() {
   const params = useParams();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  const userId = parseInt(params.id);
+  const userId = params.id ? parseInt(params.id) : null;
   const isOwnProfile = currentUser?.id === userId;
   const [isEditing, setIsEditing] = useState(false);
 
@@ -210,7 +210,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (userError) {
+  if (!userId || isNaN(userId) || userError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
         <AlertCircle className="h-12 w-12 text-destructive" />
