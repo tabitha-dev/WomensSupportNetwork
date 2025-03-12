@@ -398,16 +398,16 @@ export default function ProfilePage() {
             <div className="col-span-full md:col-span-3">
               <Tabs defaultValue="posts">
                 <TabsList>
-                  <TabsTrigger value="posts">Posts</TabsTrigger>
-                  <TabsTrigger value="about">About</TabsTrigger>
-                  <TabsTrigger value="friends">Friends</TabsTrigger>
-                  <TabsTrigger value="groups">Groups</TabsTrigger>
+                  <TabsTrigger key="posts-tab" value="posts">Posts</TabsTrigger>
+                  <TabsTrigger key="about-tab" value="about">About</TabsTrigger>
+                  <TabsTrigger key="friends-tab" value="friends">Friends</TabsTrigger>
+                  <TabsTrigger key="groups-tab" value="groups">Groups</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="posts" className="mt-6">
+                <TabsContent key="posts-content" value="posts" className="mt-6">
                   <div className="space-y-4">
                     {posts.map((post) => (
-                      <PostComponent key={post.id} post={post} />
+                      <PostComponent key={`post-${post.id}`} post={post} />
                     ))}
                     {posts.length === 0 && (
                       <Card>
@@ -419,7 +419,7 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="about" className="mt-6">
+                <TabsContent key="about-content" value="about" className="mt-6">
                   <Card>
                     <CardContent className="space-y-4 p-6">
                       <div>
@@ -446,10 +446,10 @@ export default function ProfilePage() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="friends" className="mt-6">
+                <TabsContent key="friends-content" value="friends" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {friends.map((friend) => (
-                      <Card key={friend.id} className="overflow-hidden">
+                      <Card key={`friend-${friend.id}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             <Avatar>
@@ -481,10 +481,10 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="groups" className="mt-6">
+                <TabsContent key="groups-content" value="groups" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {userGroups.map((group) => (
-                      <Card key={group.id} className="overflow-hidden">
+                      <Card key={`group-${group.id}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             {group.iconUrl && (
