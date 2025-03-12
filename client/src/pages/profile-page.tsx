@@ -3,7 +3,7 @@ import { User, Post } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import {
   UserPlus,
   UserMinus,
   Users,
+  Loader2,
 } from "lucide-react";
 import PostComponent from "@/components/post";
 import { motion } from "framer-motion";
@@ -71,6 +72,18 @@ export default function ProfilePage() {
       }
     },
   });
+
+  if (isLoadingUser) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <div>User not found</div>;
+  }
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/posts`],
@@ -181,7 +194,7 @@ export default function ProfilePage() {
               <div className="flex justify-between items-end -mt-12">
                 <Avatar className="h-24 w-24 border-4 border-background">
                   {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.displayName} />
+                    <AvatarImage src={user.avatarUrl} alt={user.displayName} />
                   ) : (
                     <AvatarFallback className="text-2xl bg-primary/10 text-primary">
                       {user.displayName.charAt(0).toUpperCase()}
@@ -423,7 +436,7 @@ export default function ProfilePage() {
                           <div className="flex items-center gap-4">
                             <Avatar>
                               {friend.avatarUrl ? (
-                                <img src={friend.avatarUrl} alt={friend.displayName} />
+                                <AvatarImage src={friend.avatarUrl} alt={friend.displayName} />
                               ) : (
                                 <AvatarFallback>
                                   {friend.displayName.charAt(0).toUpperCase()}
