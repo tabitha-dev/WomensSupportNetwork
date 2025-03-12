@@ -5,6 +5,16 @@ A supportive social platform designed to empower women through digital connectio
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
+## 🌟 Screenshots
+![image](https://github.com/user-attachments/assets/0275e9c5-6181-4ef0-ba39-774c5a5b0431)
+![image](https://github.com/user-attachments/assets/12796a93-35f8-4280-b724-0d73dc7893ef)
+![image](https://github.com/user-attachments/assets/c5ed1c8d-76c4-45d8-a4ed-4fc7b7a87772)
+![image](https://github.com/user-attachments/assets/6ca1c80c-6d47-4302-ba5f-e96d7298fad1)
+
+
+
+
+
 ## 🌟 Features
 
 - **Community Groups** - Join interest-based groups for meaningful discussions
