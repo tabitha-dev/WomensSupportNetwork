@@ -21,9 +21,10 @@ import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaTwitter, FaGithub, FaLinkedin, FaInstagram } from "react-icons/fa";
 import { useToast } from "@/hooks/use-toast";
+import React from 'react';
 
 const SocialIconMap = {
   twitter: FaTwitter,
@@ -40,47 +41,49 @@ export default function ProfilePage() {
   const isOwnProfile = currentUser?.id === userId;
   const [isEditing, setIsEditing] = useState(false);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    displayName: '',
-    bio: '',
-    location: '',
-    occupation: '',
-    favoriteQuote: '',
-    backgroundColor: '',
-    textColor: '',
-    accentColor: '',
-    fontFamily: '',
+  // Query user data first
+  const { data: user, isLoading: isLoadingUser } = useQuery<User>({
+    queryKey: [`/api/users/${userId}`],
+    enabled: !!userId,
   });
 
-  // Add field-specific state
+  // Initialize form state after we have user data
+  const [formData, setFormData] = useState({
+    displayName: user?.displayName || '',
+    bio: user?.bio || '',
+    location: user?.location || '',
+    occupation: user?.occupation || '',
+    favoriteQuote: user?.favoriteQuote || '',
+    backgroundColor: user?.backgroundColor || '',
+    textColor: user?.textColor || '',
+    accentColor: user?.accentColor || '',
+    fontFamily: user?.fontFamily || '',
+  });
+
+  // Initialize field-specific state
   const [locationInput, setLocationInput] = useState(user?.location || "");
   const [occupationInput, setOccupationInput] = useState(user?.occupation || "");
   const [interestsInput, setInterestsInput] = useState(user?.interests || "");
 
-
-  const { data: user, isLoading: isLoadingUser } = useQuery<User>({
-    queryKey: [`/api/users/${userId}`],
-    enabled: !!userId,
-    onSuccess: (data) => {
-      if (data) {
-        setFormData({
-          displayName: data.displayName || '',
-          bio: data.bio || '',
-          location: data.location || '',
-          occupation: data.occupation || '',
-          favoriteQuote: data.favoriteQuote || '',
-          backgroundColor: data.backgroundColor || '',
-          textColor: data.textColor || '',
-          accentColor: data.accentColor || '',
-          fontFamily: data.fontFamily || '',
-        });
-        setLocationInput(data.location || "");
-        setOccupationInput(data.occupation || "");
-        setInterestsInput(data.interests || "");
-      }
-    },
-  });
+  // Update form data when user data changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        displayName: user.displayName || '',
+        bio: user.bio || '',
+        location: user.location || '',
+        occupation: user.occupation || '',
+        favoriteQuote: user.favoriteQuote || '',
+        backgroundColor: user.backgroundColor || '',
+        textColor: user.textColor || '',
+        accentColor: user.accentColor || '',
+        fontFamily: user.fontFamily || '',
+      });
+      setLocationInput(user.location || "");
+      setOccupationInput(user.occupation || "");
+      setInterestsInput(user.interests || "");
+    }
+  }, [user]);
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/posts`],
@@ -94,7 +97,7 @@ export default function ProfilePage() {
   });
 
   // Combine posts and group posts
-  const allPosts = [...posts, ...groupPosts].sort((a, b) => 
+  const allPosts = [...posts, ...groupPosts].sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
@@ -118,6 +121,7 @@ export default function ProfilePage() {
     enabled: !!userId,
   });
 
+  // Handle profile updates
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Partial<User>) => {
       const response = await apiRequest("PATCH", `/api/users/${userId}`, data);
@@ -147,7 +151,6 @@ export default function ProfilePage() {
     updateProfileMutation.mutate({ [field]: value });
   };
 
-  // Handle individual field updates
   const handleFieldUpdate = (field: string, value: string) => {
     updateProfileMutation.mutate({ [field]: value });
   };
@@ -234,6 +237,7 @@ export default function ProfilePage() {
     });
   };
 
+  // Loading state
   if (isLoadingUser) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
