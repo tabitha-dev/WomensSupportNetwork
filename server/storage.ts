@@ -230,22 +230,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserGroups(userId: number): Promise<Group[]> {
-    const result = await db
-      .select({
-        id: groups.id,
-        name: groups.name,
-        description: groups.description,
-        category: groups.category,
-        createdAt: groups.createdAt,
-        iconUrl: groups.iconUrl,
-        coverUrl: groups.coverUrl,
-        isPrivate: groups.isPrivate,
-      })
-      .from(userGroups)
-      .innerJoin(groups, eq(userGroups.groupId, groups.id))
-      .where(eq(userGroups.userId, userId));
+    try {
+      console.log('Fetching groups for user:', userId);
+      const result = await db
+        .select({
+          id: groups.id,
+          name: groups.name,
+          description: groups.description,
+          category: groups.category,
+          createdAt: groups.createdAt,
+          iconUrl: groups.iconUrl,
+          coverUrl: groups.coverUrl,
+          isPrivate: groups.isPrivate,
+        })
+        .from(userGroups)
+        .innerJoin(groups, eq(userGroups.groupId, groups.id))
+        .where(eq(userGroups.userId, userId));
 
-    return result;
+      console.log(`Found ${result.length} user groups`);
+      return result;
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+      return [];
+    }
   }
 
   async getPostComments(postId: number): Promise<Comment[]> {
@@ -344,13 +351,20 @@ export class DatabaseStorage implements IStorage {
     return !!like;
   }
   async getUserPosts(userId: number): Promise<Post[]> {
-    const userPosts = await db
-      .select()
-      .from(posts)
-      .where(eq(posts.userId, userId))
-      .orderBy(desc(posts.createdAt));
+    try {
+      console.log('Fetching posts for user:', userId);
+      const userPosts = await db
+        .select()
+        .from(posts)
+        .where(eq(posts.userId, userId))
+        .orderBy(desc(posts.createdAt));
 
-    return userPosts;
+      console.log(`Found ${userPosts.length} user posts`);
+      return userPosts;
+    } catch (error) {
+      console.error('Error fetching user posts:', error);
+      return [];
+    }
   }
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
     const [user] = await db
@@ -519,11 +533,15 @@ export class DatabaseStorage implements IStorage {
 
   async getGroupChat(groupId: number): Promise<GroupChat[]> {
     try {
-      return await db
+      console.log('Fetching chat messages for group:', groupId);
+      const messages = await db
         .select()
         .from(groupChat)
         .where(eq(groupChat.groupId, groupId))
         .orderBy(asc(groupChat.createdAt));
+
+      console.log(`Found ${messages.length} chat messages`);
+      return messages;
     } catch (error) {
       console.error('Error fetching group chat:', error);
       return [];
@@ -535,11 +553,19 @@ export class DatabaseStorage implements IStorage {
     groupId: number,
     message: string
   ): Promise<GroupChat> {
-    const [chatMessage] = await db
-      .insert(groupChat)
-      .values({ userId, groupId, message })
-      .returning();
-    return chatMessage;
+    try {
+      console.log('Creating chat message for group:', groupId);
+      const [chatMessage] = await db
+        .insert(groupChat)
+        .values({ userId, groupId, message })
+        .returning();
+
+      console.log('Created chat message:', chatMessage);
+      return chatMessage;
+    } catch (error) {
+      console.error('Error creating chat message:', error);
+      throw error;
+    }
   }
 
   async deletePost(postId: number, userId: number): Promise<boolean> {

@@ -318,6 +318,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add routes for groups and posts
+  app.get("/api/users/:id/posts", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const userPosts = await storage.getUserPosts(userId);
+      res.json(userPosts);
+    } catch (error) {
+      console.error("Error fetching user posts:", error);
+      res.status(500).json({ error: "Failed to fetch user posts" });
+    }
+  });
+
+  app.get("/api/users/:id/groups", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const groups = await storage.getUserGroups(userId);
+      res.json(groups);
+    } catch (error) {
+      console.error("Error fetching user groups:", error);
+      res.status(500).json({ error: "Failed to fetch user groups" });
+    }
+  });
+
+  app.get("/api/groups/:id/chat", async (req, res) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      const messages = await storage.getGroupChat(groupId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching group chat:", error);
+      res.status(500).json({ error: "Failed to fetch group chat" });
+    }
+  });
+
+  app.post("/api/groups/:id/chat", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const groupId = parseInt(req.params.id);
+      const message = await storage.createChatMessage(
+        req.user!.id,
+        groupId,
+        req.body.message
+      );
+      res.json(message);
+    } catch (error) {
+      console.error("Error creating chat message:", error);
+      res.status(500).json({ error: "Failed to create chat message" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
