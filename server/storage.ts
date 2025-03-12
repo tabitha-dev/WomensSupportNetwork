@@ -1,5 +1,5 @@
-import { users, groups, posts, userGroups, comments, likes, groupMembers, groupChat, friendships, friendRequests, followers } from "@shared/schema";
-import type { User, InsertUser, Group, Post, Comment, GroupMember, GroupChat, GroupWithRelations } from "@shared/schema";
+import { users, groups, posts, userGroups, comments, likes, groupMembers, groupChat, friendships, friendRequests, followers, reactions } from "@shared/schema";
+import type { User, InsertUser, Group, Post, Comment, GroupMember, GroupChat, GroupWithRelations, Reaction } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
@@ -7,12 +7,6 @@ import session from "express-session";
 import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
-
-interface Reaction {
-    userId: number;
-    postId: number;
-    emoji: string;
-}
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -584,30 +578,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPostReactions(postId: number): Promise<Reaction[]> {
-    return await db
-      .select()
-      .from(reactions)
-      .where(eq(reactions.postId, postId));
+    try {
+      const result = await db
+        .select()
+        .from(reactions)
+        .where(eq(reactions.postId, postId));
+      return result;
+    } catch (error) {
+      console.error('Error fetching reactions:', error);
+      return [];
+    }
   }
 
   async addReaction(userId: number, postId: number, emoji: string): Promise<Reaction> {
-    const [reaction] = await db
-      .insert(reactions)
-      .values({ userId, postId, emoji })
-      .returning();
-    return reaction;
+    try {
+      const [reaction] = await db
+        .insert(reactions)
+        .values({ userId, postId, emoji })
+        .returning();
+      return reaction;
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      throw error;
+    }
   }
 
   async removeReaction(userId: number, postId: number, emoji: string): Promise<void> {
-    await db
-      .delete(reactions)
-      .where(
-        and(
-          eq(reactions.userId, userId),
-          eq(reactions.postId, postId),
-          eq(reactions.emoji, emoji)
-        )
-      );
+    try {
+      await db
+        .delete(reactions)
+        .where(
+          and(
+            eq(reactions.userId, userId),
+            eq(reactions.postId, postId),
+            eq(reactions.emoji, emoji)
+          )
+        );
+    } catch (error) {
+      console.error('Error removing reaction:', error);
+      throw error;
+    }
   }
 }
 
