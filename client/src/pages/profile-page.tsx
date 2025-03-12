@@ -574,14 +574,18 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
+                {/* Groups Tab */}
                 <TabsContent value="tab-groups" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {isLoadingGroups ? (
                       <div className="col-span-full flex justify-center p-4">
                         <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
-                    ) : userGroups.map((group) => (
-                      <Card key={`group-${group.id}-${group.name}`} className="overflow-hidden">
+                    ) : userGroups.map((group, index) => (
+                      <Card 
+                        key={`profile-group-${group.id}-${index}`} 
+                        className="overflow-hidden"
+                      >
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             {group.iconUrl && (
@@ -610,6 +614,7 @@ export default function ProfilePage() {
                     )}
                   </div>
                 </TabsContent>
+
               </Tabs>
             </div>
           </div>
