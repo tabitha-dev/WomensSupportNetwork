@@ -3,7 +3,7 @@ import { Group } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import GroupCard from "@/components/group-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
 export default function HomePage() {
@@ -66,13 +66,13 @@ export default function HomePage() {
 
           <TabsContent value="all" className="mt-6">
             <div className="grid gap-8">
-              {groupsByCategory && Object.entries(groupsByCategory).map(([category, groups]) => (
-                <div key={category} className="space-y-4">
+              {groupsByCategory && Object.entries(groupsByCategory).map(([category, groups], categoryIndex) => (
+                <div key={`category-${categoryIndex}-${category}`} className="space-y-4">
                   <h2 className="text-2xl font-semibold text-foreground/90">{category}</h2>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {groups.map((group) => (
                       <GroupCard 
-                        key={group.id} 
+                        key={`group-${group.id}-${category}`} 
                         group={group}
                         isJoined={userGroups?.some(g => g.id === group.id)}
                       />
@@ -94,7 +94,7 @@ export default function HomePage() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {userGroups?.map((group) => (
                   <GroupCard 
-                    key={group.id} 
+                    key={`user-group-${group.id}`} 
                     group={group}
                     isJoined={true}
                   />
