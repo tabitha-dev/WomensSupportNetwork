@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
-  Loader2,
   Settings,
   MapPin,
   Briefcase,
@@ -366,20 +365,20 @@ export default function ProfilePage() {
 
             {/* Main Content Area */}
             <div className="col-span-full md:col-span-3">
-              <Tabs defaultValue="posts">
-                <TabsList>
-                  <TabsTrigger key="posts" value="posts">Posts</TabsTrigger>
-                  <TabsTrigger key="about" value="about">About</TabsTrigger>
-                  <TabsTrigger key="friends" value="friends">Friends</TabsTrigger>
-                  <TabsTrigger key="groups" value="groups">Groups</TabsTrigger>
+              <Tabs defaultValue="tab-posts" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger key="tab-trigger-posts" value="tab-posts">Posts</TabsTrigger>
+                  <TabsTrigger key="tab-trigger-about" value="tab-about">About</TabsTrigger>
+                  <TabsTrigger key="tab-trigger-friends" value="tab-friends">Friends</TabsTrigger>
+                  <TabsTrigger key="tab-trigger-groups" value="tab-groups">Groups</TabsTrigger>
                 </TabsList>
 
-                <TabsContent key="posts" value="posts" className="mt-6">
+                <TabsContent key="tab-content-posts" value="tab-posts" className="mt-6">
                   <div className="space-y-4">
-                    {posts.map((post) => (
-                      <PostComponent key={post.id} post={post} />
+                    {posts?.map((post) => (
+                      <PostComponent key={`user-post-${post.id}`} post={post} />
                     ))}
-                    {posts.length === 0 && (
+                    {(!posts || posts.length === 0) && (
                       <Card>
                         <CardContent className="p-8 text-center text-muted-foreground">
                           No posts yet
@@ -389,7 +388,7 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent key="about" value="about" className="mt-6">
+                <TabsContent key="tab-content-about" value="tab-about" className="mt-6">
                   <Card>
                     <CardContent className="space-y-4 p-6">
                       <div>
@@ -416,10 +415,10 @@ export default function ProfilePage() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent key="friends" value="friends" className="mt-6">
+                <TabsContent key="tab-content-friends" value="tab-friends" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {friends.map((friend) => (
-                      <Card key={friend.id} className="overflow-hidden">
+                    {friends?.map((friend) => (
+                      <Card key={`profile-friend-${friend.id}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             <Avatar>
@@ -441,7 +440,7 @@ export default function ProfilePage() {
                         </CardContent>
                       </Card>
                     ))}
-                    {friends.length === 0 && (
+                    {(!friends || friends.length === 0) && (
                       <Card className="col-span-full">
                         <CardContent className="p-8 text-center text-muted-foreground">
                           No friends yet
@@ -451,10 +450,10 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent key="groups" value="groups" className="mt-6">
+                <TabsContent key="tab-content-groups" value="tab-groups" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {userGroups.map((group) => (
-                      <Card key={group.id} className="overflow-hidden">
+                    {Array.isArray(userGroups) && userGroups.map((group) => (
+                      <Card key={`profile-group-${group.id}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             {group.iconUrl && (
@@ -474,7 +473,7 @@ export default function ProfilePage() {
                         </CardContent>
                       </Card>
                     ))}
-                    {userGroups.length === 0 && (
+                    {(!Array.isArray(userGroups) || userGroups.length === 0) && (
                       <Card className="col-span-full">
                         <CardContent className="p-8 text-center text-muted-foreground">
                           Not a member of any groups yet
