@@ -20,7 +20,8 @@ export interface IStorage {
   joinGroup(userId: number, groupId: number): Promise<void>;
   leaveGroup(userId: number, groupId: number): Promise<void>;
   getUserGroups(userId: number): Promise<Group[]>;
-  getPostComments(postId: number): Promise<(Comment & { user: User })[]>;
+  getPostComments(postId: number): Promise<Comment[]>;
+  getCommentUsers(postId: number): Promise<Record<number, User>>;
   createComment(userId: number, postId: number, content: string): Promise<Comment>;
   likePost(userId: number, postId: number): Promise<void>;
   unlikePost(userId: number, postId: number): Promise<void>;
@@ -237,22 +238,45 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getPostComments(postId: number): Promise<(Comment & { user: User })[]> {
+  async getPostComments(postId: number): Promise<Comment[]> {
     const result = await db
       .select({
         id: comments.id,
         content: comments.content,
         createdAt: comments.createdAt,
-        user: users,
+        userId: comments.userId,
+        postId: comments.postId
       })
-      .from(comments)
-      .innerJoin(users, eq(comments.userId, users.id))
+      .from(comments)      
       .where(eq(comments.postId, postId))
       .orderBy(comments.createdAt);
 
-    return result as (Comment & { user: User })[];
+    return result;
   }
 
+  async getCommentUsers(postId: number): Promise<Record<number, User>> {
+    try {
+      const results = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+        })
+        .from(comments)
+        .innerJoin(users, eq(comments.userId, users.id))
+        .where(eq(comments.postId, postId));
+
+      // Convert array of users to a record keyed by user ID
+      return results.reduce((acc, user) => {
+        acc[user.id] = user;
+        return acc;
+      }, {} as Record<number, User>);
+    } catch (error) {
+      console.error('Error fetching comment users:', error);
+      return {};
+    }
+  }
   async createComment(userId: number, postId: number, content: string): Promise<Comment> {
     const [comment] = await db
       .insert(comments)

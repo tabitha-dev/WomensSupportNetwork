@@ -8,7 +8,6 @@ import path from "path";
 import express from "express";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Create upload directories if they don't exist
   await fs.mkdir("uploads/avatars", { recursive: true });
 
   setupAuth(app);
@@ -117,11 +116,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const postId = parseInt(req.params.id);
       const post = await storage.updatePost(postId, req.user!.id, req.body.content);
-      
+
       if (!post) {
         return res.status(404).json({ error: "Post not found or unauthorized" });
       }
-      
+
       res.json(post);
     } catch (error) {
       console.error("Error updating post:", error);
@@ -129,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get post comments
+  // Get post comments and their users
   app.get("/api/posts/:id/comments", async (req, res) => {
     try {
       const comments = await storage.getPostComments(parseInt(req.params.id));
@@ -137,6 +136,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching comments:", error);
       res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  });
+
+  // Get comment users for a post
+  app.get("/api/posts/:id/comment-users", async (req, res) => {
+    try {
+      const users = await storage.getCommentUsers(parseInt(req.params.id));
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching comment users:", error);
+      res.status(500).json({ error: "Failed to fetch comment users" });
     }
   });
 

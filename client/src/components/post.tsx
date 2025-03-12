@@ -62,6 +62,11 @@ export default function PostComponent({ post: initialPost }: PostProps) {
     enabled: showComments,
   });
 
+  const { data: commentUsers = {} } = useQuery<Record<number, User>>({
+    queryKey: [`/api/posts/${post.id}/comment-users`],
+    enabled: showComments && comments.length > 0,
+  });
+
   const { data: isLiked = false } = useQuery<boolean>({
     queryKey: [`/api/posts/${post.id}/liked`],
   });
@@ -123,23 +128,18 @@ export default function PostComponent({ post: initialPost }: PostProps) {
       }
     },
     onMutate: async () => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: [`/api/posts/${post.id}/liked`] });
-
-      // Snapshot the previous values
       const previousLiked = queryClient.getQueryData([`/api/posts/${post.id}/liked`]);
 
-      // Optimistically update the like status and count
       queryClient.setQueryData([`/api/posts/${post.id}/liked`], !isLiked);
       setPost(prev => ({
         ...prev,
-        likeCount: prev.likeCount + (isLiked ? -1 : 1)
+        likeCount: (prev.likeCount || 0) + (isLiked ? -1 : 1)
       }));
 
       return { previousLiked };
     },
     onError: (err, _, context) => {
-      // Revert optimistic update on error
       queryClient.setQueryData([`/api/posts/${post.id}/liked`], context?.previousLiked);
       setPost(initialPost);
       toast({
@@ -207,7 +207,7 @@ export default function PostComponent({ post: initialPost }: PostProps) {
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{author?.displayName}</span>
                 <span className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(post.createdAt || Date.now()), { addSuffix: true })}
                 </span>
               </div>
             </div>
@@ -349,34 +349,37 @@ export default function PostComponent({ post: initialPost }: PostProps) {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {comments.map((comment) => (
-                      <motion.div
-                        key={`comment-${comment.id}`}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="flex items-start gap-2 p-2 rounded-lg bg-muted/50"
-                      >
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback>
-                            {comment.user.displayName.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-sm font-medium">
-                              {comment.user.displayName}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(comment.createdAt), {
-                                addSuffix: true,
-                              })}
-                            </span>
+                    {comments.map((comment) => {
+                      const commentUser = commentUsers[comment.userId || 0];
+                      return (
+                        <motion.div
+                          key={`comment-${comment.id}`}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="flex items-start gap-2 p-2 rounded-lg bg-muted/50"
+                        >
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback>
+                              {commentUser?.displayName?.charAt(0).toUpperCase() || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-sm font-medium">
+                                {commentUser?.displayName || 'Unknown User'}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(comment.createdAt || Date.now()), {
+                                  addSuffix: true,
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-sm">{comment.content}</p>
                           </div>
-                          <p className="text-sm">{comment.content}</p>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 )}
               </motion.div>
