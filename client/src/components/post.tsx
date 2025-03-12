@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PostSkeleton } from "./post-skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ErrorBoundary } from "./error-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type PostProps = {
   post: Post;

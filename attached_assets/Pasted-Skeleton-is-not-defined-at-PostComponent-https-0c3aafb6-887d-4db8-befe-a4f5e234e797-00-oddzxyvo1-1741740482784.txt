@@ -1,0 +1,42 @@
+Skeleton is not defined
+at PostComponent (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/components/post.tsx:580:42)
+at renderWithHooks (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:11548:26)
+at updateFunctionComponent (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:14582:28)
+at beginWork (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:15924:22)
+at HTMLUnknownElement.callCallback2 (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:3674:22)
+at Object.invokeGuardedCallbackDev (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:3699:24)
+at invokeGuardedCallback (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:3733:39)
+at beginWork$1 (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:19765:15)
+at performUnitOfWork (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:19198:20)
+at workLoopSync (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:19137:13)
+Skeleton is not defined
+at PostComponent (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/components/post.tsx:580:42)
+at renderWithHooks (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:11548:26)
+at updateFunctionComponent (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:14582:28)
+at beginWork (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:15924:22)
+at HTMLUnknownElement.callCallback2 (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:3674:22)
+at Object.invokeGuardedCallbackDev (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:3699:24)
+at invokeGuardedCallback (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:3733:39)
+at beginWork$1 (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:19765:15)
+at performUnitOfWork (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:19198:20)
+at workLoopSync (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=97c1e122:19137:13)
+The above error occurred in the <PostComponent> component:
+
+    at PostComponent (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/components/post.tsx:56:47)
+    at div
+    at div
+    at div
+    at GroupPage (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/pages/group-page.tsx:40:18)
+    at Route (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=97c1e122:323:16)
+    at Switch (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=97c1e122:379:17)
+    at Router
+    at main
+    at div
+    at AuthProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at ThemeProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/src/hooks/use-theme.tsx:20:33)
+    at QueryClientProvider (https://0c3aafb6-887d-4db8-befe-a4f5e234e797-00-oddzxyvo144a.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=97c1e122:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+Skeleton is not defined
