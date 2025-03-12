@@ -295,6 +295,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's posts
+  app.get("/api/users/:id/posts", async (req, res) => {
+    try {
+      const posts = await storage.getUserPosts(parseInt(req.params.id));
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching user posts:", error);
+      res.status(500).json({ error: "Failed to fetch user posts" });
+    }
+  });
+
+  // Get user's friends
+  app.get("/api/users/:id/friends", async (req, res) => {
+    try {
+      const friends = await storage.getUserFriends(parseInt(req.params.id));
+      res.json(friends);
+    } catch (error) {
+      console.error("Error fetching user friends:", error);
+      res.status(500).json({ error: "Failed to fetch user friends" });
+    }
+  });
+
+  // Get user's followers
+  app.get("/api/users/:id/followers", async (req, res) => {
+    try {
+      const followers = await storage.getUserFollowers(parseInt(req.params.id));
+      res.json(followers);
+    } catch (error) {
+      console.error("Error fetching user followers:", error);
+      res.status(500).json({ error: "Failed to fetch user followers" });
+    }
+  });
+
+  // Get user's following
+  app.get("/api/users/:id/following", async (req, res) => {
+    try {
+      const following = await storage.getUserFollowing(parseInt(req.params.id));
+      res.json(following);
+    } catch (error) {
+      console.error("Error fetching user following:", error);
+      res.status(500).json({ error: "Failed to fetch user following" });
+    }
+  });
+
+  // Check if user is following another user
+  app.get("/api/users/:id/is-following", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const isFollowing = await storage.isUserFollowing(req.user!.id, parseInt(req.params.id));
+      res.json(isFollowing);
+    } catch (error) {
+      console.error("Error checking follow status:", error);
+      res.status(500).json({ error: "Failed to check follow status" });
+    }
+  });
+
+  // Follow user
+  app.post("/api/users/:id/follow", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      await storage.followUser(req.user!.id, parseInt(req.params.id));
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error following user:", error);
+      res.status(500).json({ error: "Failed to follow user" });
+    }
+  });
+
+  // Unfollow user
+  app.post("/api/users/:id/unfollow", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      await storage.unfollowUser(req.user!.id, parseInt(req.params.id));
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error unfollowing user:", error);
+      res.status(500).json({ error: "Failed to unfollow user" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

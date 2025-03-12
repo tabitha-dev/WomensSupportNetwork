@@ -16,6 +16,7 @@ import {
   UserPlus,
   UserMinus,
   Users,
+  AlertCircle
 } from "lucide-react";
 import PostComponent from "@/components/post";
 import { motion } from "framer-motion";
@@ -52,10 +53,14 @@ export default function ProfilePage() {
     textColor: '',
     accentColor: '',
     fontFamily: '',
-    socialLinks: ''
+    socialLinks: '{}'
   });
 
-  const { data: user, isLoading: isLoadingUser } = useQuery<User>({
+  const {
+    data: user,
+    isLoading: isLoadingUser,
+    error: userError
+  } = useQuery<User>({
     queryKey: [`/api/users/${userId}`],
     enabled: !!userId,
     onSuccess: (data) => {
@@ -74,6 +79,7 @@ export default function ProfilePage() {
         });
       }
     },
+    retry: 1
   });
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
@@ -196,7 +202,7 @@ export default function ProfilePage() {
     "--accent-color": user?.accentColor || "hsl(var(--primary))",
   } as React.CSSProperties;
 
-  if (isLoadingUser || isLoadingPosts) {
+  if (isLoadingUser) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -204,8 +210,23 @@ export default function ProfilePage() {
     );
   }
 
+  if (userError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+        <AlertCircle className="h-12 w-12 text-destructive" />
+        <h2 className="text-2xl font-semibold">User Not Found</h2>
+        <p className="text-muted-foreground">
+          The user you're looking for doesn't exist or has been removed.
+        </p>
+        <Button variant="outline" onClick={() => window.history.back()}>
+          Go Back
+        </Button>
+      </div>
+    );
+  }
+
   if (!user) {
-    return <div>User not found</div>;
+    return null;
   }
 
   return (
