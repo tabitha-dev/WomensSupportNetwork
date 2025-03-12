@@ -17,7 +17,7 @@ export const users = pgTable("users", {
   occupation: text("occupation"),
   relationshipStatus: text("relationship_status"),
   favoriteQuote: text("favorite_quote"),
-  socialLinks: text("social_links"),
+  socialLinks: text("social_links"), // JSON string containing social media links
   customCss: text("custom_css"),
   profileLayout: text("profile_layout").default("classic"),
   backgroundColor: text("background_color"),
