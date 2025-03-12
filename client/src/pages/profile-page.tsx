@@ -73,18 +73,6 @@ export default function ProfilePage() {
     },
   });
 
-  if (isLoadingUser) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <div>User not found</div>;
-  }
-
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/posts`],
     enabled: !!userId,
@@ -106,7 +94,7 @@ export default function ProfilePage() {
   });
 
   const { data: userGroups = [] } = useQuery({
-    queryKey: ["/api/user/groups"],
+    queryKey: [`/api/users/${userId}/groups`], // Corrected query key
     enabled: !!userId,
   });
 
@@ -197,7 +185,7 @@ export default function ProfilePage() {
                     <AvatarImage src={user.avatarUrl} alt={user.displayName} />
                   ) : (
                     <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                      {user.displayName.charAt(0).toUpperCase()}
+                      {user.displayName?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   )}
                 </Avatar>
@@ -380,10 +368,10 @@ export default function ProfilePage() {
             <div className="col-span-full md:col-span-3">
               <Tabs defaultValue="tab-posts" className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger key="tab-trigger-posts" value="tab-posts">Posts</TabsTrigger>
-                  <TabsTrigger key="tab-trigger-about" value="tab-about">About</TabsTrigger>
-                  <TabsTrigger key="tab-trigger-friends" value="tab-friends">Friends</TabsTrigger>
-                  <TabsTrigger key="tab-trigger-groups" value="tab-groups">Groups</TabsTrigger>
+                  <TabsTrigger key="posts-tab" value="tab-posts">Posts</TabsTrigger>
+                  <TabsTrigger key="about-tab" value="tab-about">About</TabsTrigger>
+                  <TabsTrigger key="friends-tab" value="tab-friends">Friends</TabsTrigger>
+                  <TabsTrigger key="groups-tab" value="tab-groups">Groups</TabsTrigger>
                 </TabsList>
 
                 <TabsContent key="tab-content-posts" value="tab-posts" className="mt-6">
@@ -431,7 +419,7 @@ export default function ProfilePage() {
                 <TabsContent key="tab-content-friends" value="tab-friends" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {friends?.map((friend) => (
-                      <Card key={`profile-friend-${friend.id}`} className="overflow-hidden">
+                      <Card key={`friend-${friend.id}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             <Avatar>
@@ -439,7 +427,7 @@ export default function ProfilePage() {
                                 <AvatarImage src={friend.avatarUrl} alt={friend.displayName} />
                               ) : (
                                 <AvatarFallback>
-                                  {friend.displayName.charAt(0).toUpperCase()}
+                                  {friend.displayName?.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                               )}
                             </Avatar>
