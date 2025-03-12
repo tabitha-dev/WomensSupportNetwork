@@ -11,7 +11,6 @@ import {
   Settings,
   MapPin,
   Briefcase,
-  Heart,
   Quote,
   UserPlus,
   UserMinus,
@@ -79,11 +78,6 @@ export default function ProfilePage() {
     enabled: !!userId,
   });
 
-  const { data: isFollowing } = useQuery<boolean>({
-    queryKey: [`/api/users/${userId}/is-following`],
-    enabled: !!userId && !isOwnProfile,
-  });
-
   const { data: friends = [] } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/friends`],
     enabled: !!userId,
@@ -128,25 +122,6 @@ export default function ProfilePage() {
     },
   });
 
-  const followMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest(
-        "POST",
-        `/api/users/${userId}/${isFollowing ? "unfollow" : "follow"}`
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/is-following`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/followers`] });
-    },
-  });
-
-  const sendFriendRequestMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", `/api/users/${userId}/friend-request`);
-    },
-  });
-
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     updateProfileMutation.mutate({ [field]: value });
@@ -182,10 +157,6 @@ export default function ProfilePage() {
     fontFamily: user.fontFamily || undefined,
   };
 
-  const accentStyles = {
-    "--accent-color": user.accentColor || "hsl(var(--primary))",
-  } as React.CSSProperties;
-
   return (
     <div className="min-h-screen" style={customStyles}>
       <div className="container mx-auto p-4 space-y-6">
@@ -219,37 +190,6 @@ export default function ProfilePage() {
                   )}
                 </Avatar>
                 <div className="flex gap-2">
-                  {!isOwnProfile && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => followMutation.mutate()}
-                        className="gap-2"
-                      >
-                        {isFollowing ? (
-                          <>
-                            <UserMinus className="h-4 w-4" />
-                            Unfollow
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="h-4 w-4" />
-                            Follow
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => sendFriendRequestMutation.mutate()}
-                        className="gap-2"
-                      >
-                        <Users className="h-4 w-4" />
-                        Add Friend
-                      </Button>
-                    </>
-                  )}
                   {isOwnProfile && (
                     <Button
                       variant="outline"
@@ -267,39 +207,35 @@ export default function ProfilePage() {
               <div className="mt-4 space-y-4">
                 {isEditing ? (
                   <div className="space-y-4">
-                    <div className="grid gap-4">
-                      <div>
-                        <label className="text-sm font-medium">Display Name</label>
-                        <Input
-                          placeholder="Display Name"
-                          value={formData.displayName}
-                          onChange={(e) =>
-                            handleInputChange('displayName', e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Bio</label>
-                        <Textarea
-                          placeholder="Bio"
-                          value={formData.bio}
-                          onChange={(e) => handleInputChange('bio', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Social Media Links</label>
-                        <div className="space-y-2">
-                          {Object.entries(SocialIconMap).map(([platform, Icon]) => (
-                            <div key={platform} className="flex items-center gap-2">
-                              <Icon className="h-5 w-5" />
-                              <Input
-                                placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`}
-                                value={socialLinks[platform] || ""}
-                                onChange={(e) => updateSocialLinks(platform, e.target.value)}
-                              />
-                            </div>
-                          ))}
-                        </div>
+                    <div>
+                      <label className="text-sm font-medium">Display Name</label>
+                      <Input
+                        placeholder="Display Name"
+                        value={formData.displayName}
+                        onChange={(e) => handleInputChange('displayName', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Bio</label>
+                      <Textarea
+                        placeholder="Bio"
+                        value={formData.bio}
+                        onChange={(e) => handleInputChange('bio', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Social Media Links</label>
+                      <div className="space-y-2">
+                        {Object.entries(SocialIconMap).map(([platform, Icon]) => (
+                          <div key={platform} className="flex items-center gap-2">
+                            <Icon className="h-5 w-5" />
+                            <Input
+                              placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`}
+                              value={socialLinks[platform] || ""}
+                              onChange={(e) => updateSocialLinks(platform, e.target.value)}
+                            />
+                          </div>
+                        ))}
                       </div>
                     </div>
                     <div className="pt-4 border-t space-y-4">
@@ -432,16 +368,16 @@ export default function ProfilePage() {
             <div className="col-span-full md:col-span-3">
               <Tabs defaultValue="posts">
                 <TabsList>
-                  <TabsTrigger key="posts-tab" value="posts">Posts</TabsTrigger>
-                  <TabsTrigger key="about-tab" value="about">About</TabsTrigger>
-                  <TabsTrigger key="friends-tab" value="friends">Friends</TabsTrigger>
-                  <TabsTrigger key="groups-tab" value="groups">Groups</TabsTrigger>
+                  <TabsTrigger key="posts" value="posts">Posts</TabsTrigger>
+                  <TabsTrigger key="about" value="about">About</TabsTrigger>
+                  <TabsTrigger key="friends" value="friends">Friends</TabsTrigger>
+                  <TabsTrigger key="groups" value="groups">Groups</TabsTrigger>
                 </TabsList>
 
-                <TabsContent key="posts-content" value="posts" className="mt-6">
+                <TabsContent key="posts" value="posts" className="mt-6">
                   <div className="space-y-4">
                     {posts.map((post) => (
-                      <PostComponent key={`post-${post.id}`} post={post} />
+                      <PostComponent key={post.id} post={post} />
                     ))}
                     {posts.length === 0 && (
                       <Card>
@@ -453,7 +389,7 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent key="about-content" value="about" className="mt-6">
+                <TabsContent key="about" value="about" className="mt-6">
                   <Card>
                     <CardContent className="space-y-4 p-6">
                       <div>
@@ -480,10 +416,10 @@ export default function ProfilePage() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent key="friends-content" value="friends" className="mt-6">
+                <TabsContent key="friends" value="friends" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {friends.map((friend) => (
-                      <Card key={`friend-${friend.id}`} className="overflow-hidden">
+                      <Card key={friend.id} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             <Avatar>
@@ -515,10 +451,10 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent key="groups-content" value="groups" className="mt-6">
+                <TabsContent key="groups" value="groups" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {userGroups.map((group) => (
-                      <Card key={`group-${group.id}`} className="overflow-hidden">
+                      <Card key={group.id} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             {group.iconUrl && (
