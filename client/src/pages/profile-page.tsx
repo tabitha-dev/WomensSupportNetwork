@@ -94,7 +94,7 @@ export default function ProfilePage() {
   });
 
   const { data: userGroups = [] } = useQuery({
-    queryKey: [`/api/users/${userId}/groups`], // Corrected query key
+    queryKey: [`/api/users/${userId}/groups`],
     enabled: !!userId,
   });
 
@@ -138,7 +138,7 @@ export default function ProfilePage() {
     });
   };
 
-  if (isLoadingUser || isLoadingPosts) {
+  if (isLoadingUser) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -227,7 +227,7 @@ export default function ProfilePage() {
                       <label className="text-sm font-medium">Social Media Links</label>
                       <div className="space-y-2">
                         {Object.entries(SocialIconMap).map(([platform, Icon]) => (
-                          <div key={platform} className="flex items-center gap-2">
+                          <div key={`social-${platform}`} className="flex items-center gap-2">
                             <Icon className="h-5 w-5" />
                             <Input
                               placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`}
@@ -296,7 +296,7 @@ export default function ProfilePage() {
                           const Icon = SocialIconMap[platform as keyof typeof SocialIconMap];
                           return (
                             <a
-                              key={platform}
+                              key={`social-link-${platform}`}
                               href={url as string}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -368,18 +368,22 @@ export default function ProfilePage() {
             <div className="col-span-full md:col-span-3">
               <Tabs defaultValue="tab-posts" className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger key="posts-tab" value="tab-posts">Posts</TabsTrigger>
-                  <TabsTrigger key="about-tab" value="tab-about">About</TabsTrigger>
-                  <TabsTrigger key="friends-tab" value="tab-friends">Friends</TabsTrigger>
-                  <TabsTrigger key="groups-tab" value="tab-groups">Groups</TabsTrigger>
+                  <TabsTrigger value="tab-posts">Posts</TabsTrigger>
+                  <TabsTrigger value="tab-about">About</TabsTrigger>
+                  <TabsTrigger value="tab-friends">Friends</TabsTrigger>
+                  <TabsTrigger value="tab-groups">Groups</TabsTrigger>
                 </TabsList>
 
-                <TabsContent key="tab-content-posts" value="tab-posts" className="mt-6">
+                <TabsContent value="tab-posts" className="mt-6">
                   <div className="space-y-4">
-                    {posts?.map((post) => (
+                    {isLoadingPosts ? (
+                      <div className="flex justify-center p-4">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                    ) : posts?.map((post) => (
                       <PostComponent key={`user-post-${post.id}`} post={post} />
                     ))}
-                    {(!posts || posts.length === 0) && (
+                    {(!posts || posts.length === 0) && !isLoadingPosts && (
                       <Card>
                         <CardContent className="p-8 text-center text-muted-foreground">
                           No posts yet
@@ -389,7 +393,7 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent key="tab-content-about" value="tab-about" className="mt-6">
+                <TabsContent value="tab-about" className="mt-6">
                   <Card>
                     <CardContent className="space-y-4 p-6">
                       <div>
@@ -416,7 +420,7 @@ export default function ProfilePage() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent key="tab-content-friends" value="tab-friends" className="mt-6">
+                <TabsContent value="tab-friends" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {friends?.map((friend) => (
                       <Card key={`friend-${friend.id}`} className="overflow-hidden">
@@ -451,10 +455,10 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent key="tab-content-groups" value="tab-groups" className="mt-6">
+                <TabsContent value="tab-groups" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {Array.isArray(userGroups) && userGroups.map((group) => (
-                      <Card key={`profile-group-${group.id}`} className="overflow-hidden">
+                    {Array.isArray(userGroups) && userGroups.map((group, index) => (
+                      <Card key={`profile-group-${group.id || index}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             {group.iconUrl && (
