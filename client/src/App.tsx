@@ -17,7 +17,7 @@ function Router() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/groups/:id" component={GroupPage} />
+      <ProtectedRoute path="/groups/:groupId" component={GroupPage} />
       <ProtectedRoute path="/users/:id" component={ProfilePage} />
       <Route component={NotFound} />
     </Switch>

@@ -35,10 +35,10 @@ const SocialIconMap = {
 };
 
 export default function ProfilePage() {
-  const { id } = useParams();
+  const params = useParams();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  const userId = parseInt(id!);
+  const userId = parseInt(params.id);
   const isOwnProfile = currentUser?.id === userId;
   const [isEditing, setIsEditing] = useState(false);
 
@@ -62,7 +62,7 @@ export default function ProfilePage() {
     error: userError
   } = useQuery<User>({
     queryKey: [`/api/users/${userId}`],
-    enabled: !!userId,
+    enabled: !!userId && !isNaN(userId),
     onSuccess: (data) => {
       if (data) {
         setFormData({
@@ -84,32 +84,32 @@ export default function ProfilePage() {
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/posts`],
-    enabled: !!userId,
+    enabled: !!userId && !isNaN(userId),
   });
 
   const { data: isFollowing } = useQuery<boolean>({
     queryKey: [`/api/users/${userId}/is-following`],
-    enabled: !!userId && !isOwnProfile,
+    enabled: !!userId && !isOwnProfile && !isNaN(userId),
   });
 
   const { data: friends = [] } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/friends`],
-    enabled: !!userId,
+    enabled: !!userId && !isNaN(userId),
   });
 
   const { data: followers = [] } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/followers`],
-    enabled: !!userId,
+    enabled: !!userId && !isNaN(userId),
   });
 
   const { data: following = [] } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/following`],
-    enabled: !!userId,
+    enabled: !!userId && !isNaN(userId),
   });
 
   const { data: userGroups = [] } = useQuery({
     queryKey: ["/api/user/groups"],
-    enabled: !!userId,
+    enabled: !!userId && !isNaN(userId),
   });
 
   const updateProfileMutation = useMutation({
