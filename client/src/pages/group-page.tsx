@@ -5,20 +5,12 @@ import { useAuth } from "@/hooks/use-auth";
 import PostComponent from "@/components/post";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import {
-  Loader2,
-  Send,
-  Users,
-  Image as ImageIcon,
-  MessageSquare,
-  Video,
-} from "lucide-react";
+import { Loader2, Send, Users, Image as ImageIcon, MessageSquare, Video } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
 export default function GroupPage() {
@@ -108,13 +100,13 @@ export default function GroupPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+      <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!groupId || isNaN(groupId) || error) {
+  if (!groupId || isNaN(groupId) || error || !group) {
     return (
       <Card className="mt-8">
         <CardContent className="p-8 text-center">
@@ -125,19 +117,6 @@ export default function GroupPage() {
           <Button variant="outline" className="mt-4" onClick={() => window.history.back()}>
             Go Back
           </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!group) {
-    return (
-      <Card className="mt-8">
-        <CardContent className="p-8 text-center">
-          <h2 className="text-2xl font-semibold mb-2">Group Not Found</h2>
-          <p className="text-muted-foreground">
-            The group you're looking for doesn't exist or has been removed.
-          </p>
         </CardContent>
       </Card>
     );
@@ -197,9 +176,6 @@ export default function GroupPage() {
           {isGroupMember ? (
             <>
               <Card>
-                <CardHeader>
-                  <CardTitle>Create Post</CardTitle>
-                </CardHeader>
                 <CardContent>
                   <form
                     onSubmit={postForm.handleSubmit((data) =>
@@ -293,9 +269,6 @@ export default function GroupPage() {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Members ({group.members?.length || 0})</CardTitle>
-            </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-4">
                 {group.members?.map((member) => (
@@ -323,9 +296,6 @@ export default function GroupPage() {
 
           {isGroupMember && (
             <Card>
-              <CardHeader>
-                <CardTitle>Group Chat</CardTitle>
-              </CardHeader>
               <CardContent>
                 <div className="h-[400px] overflow-y-auto mb-4 space-y-4">
                   {group.chatMessages?.map((message) => (

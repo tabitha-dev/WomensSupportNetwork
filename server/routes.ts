@@ -3,16 +3,10 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { upload } from "./upload";
-import fs from "fs/promises";
-import path from "path";
 import express from "express";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  await fs.mkdir("uploads/avatars", { recursive: true });
-
-  setupAuth(app);
-
-  // Serve uploaded files
+  await setupAuth(app);
   app.use("/uploads", express.static("uploads"));
 
   // Get all groups
@@ -30,18 +24,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/groups/:id", async (req, res) => {
     try {
       const groupId = parseInt(req.params.id);
-
       if (isNaN(groupId)) {
         return res.status(400).json({ error: "Invalid group ID" });
       }
 
       const group = await storage.getGroupById(groupId);
-
       if (!group) {
         return res.status(404).json({ error: "Group not found" });
       }
 
-      res.json(group);
+      // Get members, posts, and chat messages for the group
+      const [members, posts, chatMessages] = await Promise.all([
+        storage.getGroupMembers(groupId),
+        storage.getGroupPosts(groupId),
+        storage.getGroupChatMessages(groupId)
+      ]);
+
+      res.json({
+        ...group,
+        members,
+        posts,
+        chatMessages
+      });
     } catch (error) {
       console.error("Error fetching group:", error);
       res.status(500).json({ error: "Failed to fetch group" });
@@ -260,10 +264,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user data
   app.get("/api/users/:id", async (req, res) => {
     try {
-      const user = await storage.getUser(parseInt(req.params.id));
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      // Remove sensitive data
       const { password, ...safeUser } = user;
       res.json(safeUser);
     } catch (error) {
@@ -280,6 +291,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
 
       // Only allow users to update their own profile
       if (req.user!.id !== userId) {
@@ -287,6 +301,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedUser = await storage.updateUser(userId, req.body);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
       const { password, ...safeUser } = updatedUser;
       res.json(safeUser);
     } catch (error) {
