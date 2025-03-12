@@ -33,7 +33,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Group not found" });
       }
 
-      // Get members, posts, and chat messages for the group
       const [members, posts, chatMessages] = await Promise.all([
         storage.getGroupMembers(groupId),
         storage.getGroupPosts(groupId),
@@ -274,7 +273,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Remove sensitive data
       const { password, ...safeUser } = user;
       res.json(safeUser);
     } catch (error) {

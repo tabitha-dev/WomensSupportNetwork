@@ -13,8 +13,10 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getGroups(): Promise<Group[]>;
-  getGroupById(id: number): Promise<GroupWithRelations | undefined>;
+  getGroupById(id: number): Promise<Group | undefined>;
   getGroupPosts(groupId: number): Promise<Post[]>;
+  getGroupMembers(groupId: number): Promise<GroupMember[]>;
+  getGroupChatMessages(groupId: number): Promise<GroupChat[]>;
   createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post>;
   updatePost(postId: number, userId: number, content: string): Promise<Post | undefined>;
   joinGroup(userId: number, groupId: number): Promise<void>;
@@ -39,10 +41,6 @@ export interface IStorage {
   followUser(followerId: number, followingId: number): Promise<void>;
   unfollowUser(followerId: number, followingId: number): Promise<void>;
   isFollowing(followerId: number, followingId: number): Promise<boolean>;
-  getGroupMembers(groupId: number): Promise<GroupMember[]>;
-  addGroupMember(userId: number, groupId: number, role?: string): Promise<void>;
-  removeGroupMember(userId: number, groupId: number): Promise<void>;
-  getGroupChat(groupId: number): Promise<GroupChat[]>;
   createChatMessage(userId: number, groupId: number, message: string): Promise<GroupChat>;
   deletePost(postId: number, userId: number): Promise<boolean>;
   getPostReactions(postId: number): Promise<Reaction[]>;
@@ -82,61 +80,16 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(groups);
   }
 
-  async getGroupById(id: number): Promise<GroupWithRelations | undefined> {
+  async getGroupById(id: number): Promise<Group | undefined> {
     try {
-      console.log('Storage: Fetching group with ID:', id);
-
       const [group] = await db
         .select()
         .from(groups)
         .where(eq(groups.id, id));
-
-      if (!group) {
-        console.log('Storage: No group found with ID:', id);
-        return undefined;
-      }
-
-      console.log('Storage: Found base group:', group);
-
-      const [groupPostsData, groupMembersData, chatMessagesData] = await Promise.all([
-        db
-          .select({
-            id: posts.id,
-            content: posts.content,
-            userId: posts.userId,
-            groupId: posts.groupId,
-            imageUrl: posts.imageUrl,
-            videoUrl: posts.videoUrl,
-            postType: posts.postType,
-            createdAt: posts.createdAt,
-            likeCount: posts.likeCount
-          })
-          .from(posts)
-          .where(eq(posts.groupId, id))
-          .orderBy(desc(posts.createdAt)),
-        db
-          .select()
-          .from(groupMembers)
-          .where(eq(groupMembers.groupId, id))
-          .orderBy(asc(groupMembers.joinedAt)),
-        db
-          .select()
-          .from(groupChat)
-          .where(eq(groupChat.groupId, id))
-          .orderBy(asc(groupChat.createdAt))
-      ]);
-
-      const groupWithRelations: GroupWithRelations = {
-        ...group,
-        posts: groupPostsData,
-        members: groupMembersData,
-        chatMessages: chatMessagesData
-      };
-
-      return groupWithRelations;
+      return group;
     } catch (error) {
-      console.error('Storage: Error in getGroupById:', error);
-      throw error;
+      console.error('Error fetching group:', error);
+      return undefined;
     }
   }
 
@@ -184,7 +137,7 @@ export class DatabaseStorage implements IStorage {
         ))
         .returning();
 
-      console.log('Updated post:', post); 
+      console.log('Updated post:', post);
       return post;
     } catch (error) {
       console.error('Error updating post:', error);
@@ -250,7 +203,7 @@ export class DatabaseStorage implements IStorage {
         userId: comments.userId,
         postId: comments.postId
       })
-      .from(comments)      
+      .from(comments)
       .where(eq(comments.postId, postId))
       .orderBy(comments.createdAt);
 
@@ -298,8 +251,8 @@ export class DatabaseStorage implements IStorage {
 
       await tx
         .update(posts)
-        .set({ 
-          likeCount: sql`${posts.likeCount} + 1` 
+        .set({
+          likeCount: sql`${posts.likeCount} + 1`
         })
         .where(eq(posts.id, postId));
     });
@@ -318,8 +271,8 @@ export class DatabaseStorage implements IStorage {
 
       await tx
         .update(posts)
-        .set({ 
-          likeCount: sql`${posts.likeCount} - 1` 
+        .set({
+          likeCount: sql`${posts.likeCount} - 1`
         })
         .where(eq(posts.id, postId));
     });
@@ -375,9 +328,9 @@ export class DatabaseStorage implements IStorage {
       .where(eq(friendRequests.receiverId, userId))
       .innerJoin(users, eq(friendRequests.senderId, users.id));
 
-    return result.map((r) => ({ 
-      sender: r.sender, 
-      status: r.status || 'pending' 
+    return result.map((r) => ({
+      sender: r.sender,
+      status: r.status || 'pending'
     }));
   }
 
@@ -510,7 +463,7 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  async getGroupChat(groupId: number): Promise<GroupChat[]> {
+  async getGroupChatMessages(groupId: number): Promise<GroupChat[]> {
     try {
       return await db
         .select()
@@ -518,7 +471,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(groupChat.groupId, groupId))
         .orderBy(asc(groupChat.createdAt));
     } catch (error) {
-      console.error('Error fetching group chat:', error);
+      console.error('Error fetching group chat messages:', error);
       return [];
     }
   }
