@@ -149,7 +149,15 @@ export default function ProfilePage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    updateProfileMutation.mutate({ [field]: value });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      await updateProfileMutation.mutateAsync(formData);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+    }
   };
 
   // Parse social links from JSON string
@@ -345,6 +353,21 @@ export default function ProfilePage() {
                           </select>
                         </div>
                       </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button onClick={handleSubmit} disabled={updateProfileMutation.isPending}>
+                        {updateProfileMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          'Save Changes'
+                        )}
+                      </Button>
+                      <Button variant="outline" onClick={() => setIsEditing(false)}>
+                        Cancel
+                      </Button>
                     </div>
                   </div>
                 ) : (

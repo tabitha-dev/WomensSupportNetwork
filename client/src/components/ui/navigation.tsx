@@ -89,7 +89,7 @@ export default function Navigation() {
                   onClick={() => setLocation(`/users/${user.id}`)}
                 >
                   <User className="h-4 w-4" />
-                  <span>View Profile</span>
+                  <span>My Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="flex items-center gap-2 text-destructive focus:text-destructive"
