@@ -629,7 +629,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUserGroupPosts(userId: number): Promise<Post[]> {
     try {
-      // Get user's groups first
+      // First get the user's groups
       const userGroups = await this.getUserGroups(userId);
 
       if (!userGroups || userGroups.length === 0) {
@@ -639,11 +639,13 @@ export class DatabaseStorage implements IStorage {
       // Create an array of group IDs
       const groupIds = userGroups.map(group => group.id);
 
-      // Get posts from all user's groups
+      // Get posts from all user's groups using proper SQL array syntax
       const groupPosts = await db
         .select()
         .from(posts)
-        .where(sql`${posts.groupId} = ANY(ARRAY[${groupIds.join(',')}]::integer[])`)
+        .where(
+          sql`${posts.groupId} = ANY(${sql.array(groupIds, 'int4')})`
+        )
         .orderBy(desc(posts.createdAt));
 
       return groupPosts;
