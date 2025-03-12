@@ -62,7 +62,10 @@ export default function PostComponent({ post }: PostProps) {
 
   const deletePostMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("DELETE", `/api/posts/${post.id}`);
+      const response = await apiRequest("DELETE", `/api/posts/${post.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to delete post');
+      }
     },
     onSuccess: () => {
       // Invalidate both group posts and user posts queries
@@ -75,7 +78,11 @@ export default function PostComponent({ post }: PostProps) {
 
   const updatePostMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("PATCH", `/api/posts/${post.id}`, { content: editedContent });
+      const response = await apiRequest("PATCH", `/api/posts/${post.id}`, { content: editedContent });
+      if (!response.ok) {
+        throw new Error('Failed to update post');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${post.groupId}/posts`] });
@@ -88,7 +95,10 @@ export default function PostComponent({ post }: PostProps) {
 
   const likeMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", `/api/posts/${post.id}/like`);
+      const response = await apiRequest("POST", `/api/posts/${post.id}/like`);
+      if (!response.ok) {
+        throw new Error('Failed to like/unlike post');
+      }
     },
     onSuccess: () => {
       // Invalidate both the like status and the group posts to update counts
@@ -99,7 +109,11 @@ export default function PostComponent({ post }: PostProps) {
 
   const commentMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", `/api/posts/${post.id}/comments`, { content: newComment });
+      const response = await apiRequest("POST", `/api/posts/${post.id}/comments`, { content: newComment });
+      if (!response.ok) {
+        throw new Error('Failed to add comment');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/comments`] });

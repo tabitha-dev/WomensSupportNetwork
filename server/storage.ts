@@ -170,15 +170,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePost(postId: number, userId: number, content: string): Promise<Post | undefined> {
-    const [post] = await db
-      .update(posts)
-      .set({ content })
-      .where(and(
-        eq(posts.id, postId),
-        eq(posts.userId, userId)
-      ))
-      .returning();
-    return post;
+    try {
+      const [post] = await db
+        .update(posts)
+        .set({ content })
+        .where(and(
+          eq(posts.id, postId),
+          eq(posts.userId, userId)
+        ))
+        .returning();
+      return post;
+    } catch (error) {
+      console.error('Error updating post:', error);
+      return undefined;
+    }
   }
 
   async joinGroup(userId: number, groupId: number): Promise<void> {
@@ -516,7 +521,7 @@ export class DatabaseStorage implements IStorage {
         return false;
       }
 
-      // Delete the post
+      // Delete the post and all related data
       await db.transaction(async (tx) => {
         // Delete associated comments first
         await tx
