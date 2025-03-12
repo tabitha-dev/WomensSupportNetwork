@@ -21,10 +21,9 @@ import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FaTwitter, FaGithub, FaLinkedin, FaInstagram } from "react-icons/fa";
 import { useToast } from "@/hooks/use-toast";
-import React from 'react';
 
 const SocialIconMap = {
   twitter: FaTwitter,
@@ -47,23 +46,23 @@ export default function ProfilePage() {
     enabled: !!userId,
   });
 
-  // Initialize form state after we have user data
+  // Initialize form state
   const [formData, setFormData] = useState({
-    displayName: user?.displayName || '',
-    bio: user?.bio || '',
-    location: user?.location || '',
-    occupation: user?.occupation || '',
-    favoriteQuote: user?.favoriteQuote || '',
-    backgroundColor: user?.backgroundColor || '',
-    textColor: user?.textColor || '',
-    accentColor: user?.accentColor || '',
-    fontFamily: user?.fontFamily || '',
+    displayName: '',
+    bio: '',
+    location: '',
+    occupation: '',
+    favoriteQuote: '',
+    backgroundColor: '',
+    textColor: '',
+    accentColor: '',
+    fontFamily: '',
   });
 
   // Initialize field-specific state
-  const [locationInput, setLocationInput] = useState(user?.location || "");
-  const [occupationInput, setOccupationInput] = useState(user?.occupation || "");
-  const [interestsInput, setInterestsInput] = useState(user?.interests || "");
+  const [locationInput, setLocationInput] = useState("");
+  const [occupationInput, setOccupationInput] = useState("");
+  const [interestsInput, setInterestsInput] = useState("");
 
   // Update form data when user data changes
   useEffect(() => {
@@ -85,38 +84,42 @@ export default function ProfilePage() {
     }
   }, [user]);
 
+  // Query posts and group posts
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/posts`],
     enabled: !!userId,
   });
 
-  // Add group posts query
   const { data: groupPosts = [], isLoading: isLoadingGroupPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/group-posts`],
     enabled: !!userId,
   });
 
-  // Combine posts and group posts
-  const allPosts = [...posts, ...groupPosts].sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  // Combine and sort all posts
+  const allPosts = useMemo(() => {
+    const combinedPosts = [...(posts || []), ...(groupPosts || [])];
+    return combinedPosts.sort((a, b) => 
+      new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
+    );
+  }, [posts, groupPosts]);
 
-  const { data: friends = [] } = useQuery<User[]>({
+  // Query user relationships
+  const { data: friends = [], isLoading: isLoadingFriends } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/friends`],
     enabled: !!userId,
   });
 
-  const { data: followers = [] } = useQuery<User[]>({
+  const { data: followers = [], isLoading: isLoadingFollowers } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/followers`],
     enabled: !!userId,
   });
 
-  const { data: following = [] } = useQuery<User[]>({
+  const { data: following = [], isLoading: isLoadingFollowing } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/following`],
     enabled: !!userId,
   });
 
-  const { data: userGroups = [] } = useQuery({
+  const { data: userGroups = [], isLoading: isLoadingGroups } = useQuery({
     queryKey: [`/api/users/${userId}/groups`],
     enabled: !!userId,
   });
@@ -312,7 +315,9 @@ export default function ProfilePage() {
                       <Input
                         placeholder="Display Name"
                         value={formData.displayName}
-                        onChange={(e) => handleInputChange('displayName', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange('displayName', e.target.value)
+                        }
                       />
                     </div>
                     <div>
@@ -446,19 +451,43 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Posts</span>
-                    <span className="text-2xl font-bold">{posts.length}</span>
+                    <span className="text-2xl font-bold">
+                      {isLoadingPosts || isLoadingGroupPosts ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        allPosts.length
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Friends</span>
-                    <span className="text-2xl font-bold">{friends.length}</span>
+                    <span className="text-2xl font-bold">
+                      {isLoadingFriends ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        friends.length
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Followers</span>
-                    <span className="text-2xl font-bold">{followers.length}</span>
+                    <span className="text-2xl font-bold">
+                      {isLoadingFollowers ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        followers.length
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Following</span>
-                    <span className="text-2xl font-bold">{following.length}</span>
+                    <span className="text-2xl font-bold">
+                      {isLoadingFollowing ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        following.length
+                      )}
+                    </span>
                   </div>
                 </div>
               </CardContent>
