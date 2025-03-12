@@ -3,10 +3,16 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { upload } from "./upload";
+import fs from "fs/promises";
+import path from "path";
 import express from "express";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  await setupAuth(app);
+  await fs.mkdir("uploads/avatars", { recursive: true });
+
+  setupAuth(app);
+
+  // Serve uploaded files
   app.use("/uploads", express.static("uploads"));
 
   // Get all groups
@@ -24,27 +30,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/groups/:id", async (req, res) => {
     try {
       const groupId = parseInt(req.params.id);
+
       if (isNaN(groupId)) {
         return res.status(400).json({ error: "Invalid group ID" });
       }
 
       const group = await storage.getGroupById(groupId);
+
       if (!group) {
         return res.status(404).json({ error: "Group not found" });
       }
 
-      const [members, posts, chatMessages] = await Promise.all([
-        storage.getGroupMembers(groupId),
-        storage.getGroupPosts(groupId),
-        storage.getGroupChatMessages(groupId)
-      ]);
-
-      res.json({
-        ...group,
-        members,
-        posts,
-        chatMessages
-      });
+      res.json(group);
     } catch (error) {
       console.error("Error fetching group:", error);
       res.status(500).json({ error: "Failed to fetch group" });
@@ -263,16 +260,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user data
   app.get("/api/users/:id", async (req, res) => {
     try {
-      const userId = parseInt(req.params.id);
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
-
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(parseInt(req.params.id));
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-
       const { password, ...safeUser } = user;
       res.json(safeUser);
     } catch (error) {
@@ -289,9 +280,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const userId = parseInt(req.params.id);
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
 
       // Only allow users to update their own profile
       if (req.user!.id !== userId) {
@@ -299,104 +287,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedUser = await storage.updateUser(userId, req.body);
-      if (!updatedUser) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
       const { password, ...safeUser } = updatedUser;
       res.json(safeUser);
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ error: "Failed to update user" });
-    }
-  });
-
-  // Get user's posts
-  app.get("/api/users/:id/posts", async (req, res) => {
-    try {
-      const posts = await storage.getUserPosts(parseInt(req.params.id));
-      res.json(posts);
-    } catch (error) {
-      console.error("Error fetching user posts:", error);
-      res.status(500).json({ error: "Failed to fetch user posts" });
-    }
-  });
-
-  // Get user's friends
-  app.get("/api/users/:id/friends", async (req, res) => {
-    try {
-      const friends = await storage.getUserFriends(parseInt(req.params.id));
-      res.json(friends);
-    } catch (error) {
-      console.error("Error fetching user friends:", error);
-      res.status(500).json({ error: "Failed to fetch user friends" });
-    }
-  });
-
-  // Get user's followers
-  app.get("/api/users/:id/followers", async (req, res) => {
-    try {
-      const followers = await storage.getUserFollowers(parseInt(req.params.id));
-      res.json(followers);
-    } catch (error) {
-      console.error("Error fetching user followers:", error);
-      res.status(500).json({ error: "Failed to fetch user followers" });
-    }
-  });
-
-  // Get user's following
-  app.get("/api/users/:id/following", async (req, res) => {
-    try {
-      const following = await storage.getUserFollowing(parseInt(req.params.id));
-      res.json(following);
-    } catch (error) {
-      console.error("Error fetching user following:", error);
-      res.status(500).json({ error: "Failed to fetch user following" });
-    }
-  });
-
-  // Check if user is following another user
-  app.get("/api/users/:id/is-following", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      const isFollowing = await storage.isUserFollowing(req.user!.id, parseInt(req.params.id));
-      res.json(isFollowing);
-    } catch (error) {
-      console.error("Error checking follow status:", error);
-      res.status(500).json({ error: "Failed to check follow status" });
-    }
-  });
-
-  // Follow user
-  app.post("/api/users/:id/follow", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      await storage.followUser(req.user!.id, parseInt(req.params.id));
-      res.sendStatus(200);
-    } catch (error) {
-      console.error("Error following user:", error);
-      res.status(500).json({ error: "Failed to follow user" });
-    }
-  });
-
-  // Unfollow user
-  app.post("/api/users/:id/unfollow", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      await storage.unfollowUser(req.user!.id, parseInt(req.params.id));
-      res.sendStatus(200);
-    } catch (error) {
-      console.error("Error unfollowing user:", error);
-      res.status(500).json({ error: "Failed to unfollow user" });
     }
   });
 

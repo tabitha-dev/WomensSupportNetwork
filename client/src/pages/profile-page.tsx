@@ -16,7 +16,6 @@ import {
   UserPlus,
   UserMinus,
   Users,
-  AlertCircle
 } from "lucide-react";
 import PostComponent from "@/components/post";
 import { motion } from "framer-motion";
@@ -35,10 +34,10 @@ const SocialIconMap = {
 };
 
 export default function ProfilePage() {
-  const params = useParams();
+  const { id } = useParams();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  const userId = params.id ? parseInt(params.id) : null;
+  const userId = parseInt(id!);
   const isOwnProfile = currentUser?.id === userId;
   const [isEditing, setIsEditing] = useState(false);
 
@@ -53,16 +52,11 @@ export default function ProfilePage() {
     textColor: '',
     accentColor: '',
     fontFamily: '',
-    socialLinks: '{}'
   });
 
-  const {
-    data: user,
-    isLoading: isLoadingUser,
-    error: userError
-  } = useQuery<User>({
+  const { data: user, isLoading: isLoadingUser } = useQuery<User>({
     queryKey: [`/api/users/${userId}`],
-    enabled: !!userId && !isNaN(userId),
+    enabled: !!userId,
     onSuccess: (data) => {
       if (data) {
         setFormData({
@@ -75,41 +69,39 @@ export default function ProfilePage() {
           textColor: data.textColor || '',
           accentColor: data.accentColor || '',
           fontFamily: data.fontFamily || '',
-          socialLinks: data.socialLinks || '{}'
         });
       }
     },
-    retry: 1
   });
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/posts`],
-    enabled: !!userId && !isNaN(userId),
+    enabled: !!userId,
   });
 
   const { data: isFollowing } = useQuery<boolean>({
     queryKey: [`/api/users/${userId}/is-following`],
-    enabled: !!userId && !isOwnProfile && !isNaN(userId),
+    enabled: !!userId && !isOwnProfile,
   });
 
   const { data: friends = [] } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/friends`],
-    enabled: !!userId && !isNaN(userId),
+    enabled: !!userId,
   });
 
   const { data: followers = [] } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/followers`],
-    enabled: !!userId && !isNaN(userId),
+    enabled: !!userId,
   });
 
   const { data: following = [] } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/following`],
-    enabled: !!userId && !isNaN(userId),
+    enabled: !!userId,
   });
 
   const { data: userGroups = [] } = useQuery({
     queryKey: ["/api/user/groups"],
-    enabled: !!userId && !isNaN(userId),
+    enabled: !!userId,
   });
 
   const updateProfileMutation = useMutation({
@@ -157,52 +149,21 @@ export default function ProfilePage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Update social links handler
-  const handleSocialLinkChange = (platform: string, url: string) => {
-    const currentLinks = formData.socialLinks ? JSON.parse(formData.socialLinks) : {};
-    const newLinks = { ...currentLinks, [platform]: url };
-    setFormData(prev => ({
-      ...prev,
-      socialLinks: JSON.stringify(newLinks)
-    }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      await updateProfileMutation.mutateAsync(formData);
-      setIsEditing(false);
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile settings",
-        variant: "destructive",
-      });
-    }
+    updateProfileMutation.mutate({ [field]: value });
   };
 
   // Parse social links from JSON string
-  const socialLinks = formData.socialLinks ? JSON.parse(formData.socialLinks) : {};
+  const socialLinks = user?.socialLinks ? JSON.parse(user.socialLinks) : {};
 
-
-  // Apply custom styles if they exist
-  const customStyles = {
-    backgroundColor: user?.backgroundColor || undefined,
-    color: user?.textColor || undefined,
-    fontFamily: user?.fontFamily || undefined,
+  // Social media update handler
+  const updateSocialLinks = (platform: string, url: string) => {
+    const newSocialLinks = { ...socialLinks, [platform]: url };
+    updateProfileMutation.mutate({
+      socialLinks: JSON.stringify(newSocialLinks)
+    });
   };
 
-  const accentStyles = {
-    "--accent-color": user?.accentColor || "hsl(var(--primary))",
-  } as React.CSSProperties;
-
-  if (isLoadingUser) {
+  if (isLoadingUser || isLoadingPosts) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -210,24 +171,20 @@ export default function ProfilePage() {
     );
   }
 
-  if (!userId || isNaN(userId) || userError) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <AlertCircle className="h-12 w-12 text-destructive" />
-        <h2 className="text-2xl font-semibold">User Not Found</h2>
-        <p className="text-muted-foreground">
-          The user you're looking for doesn't exist or has been removed.
-        </p>
-        <Button variant="outline" onClick={() => window.history.back()}>
-          Go Back
-        </Button>
-      </div>
-    );
+  if (!user) {
+    return <div>User not found</div>;
   }
 
-  if (!user) {
-    return null;
-  }
+  // Apply custom styles if they exist
+  const customStyles = {
+    backgroundColor: user.backgroundColor || undefined,
+    color: user.textColor || undefined,
+    fontFamily: user.fontFamily || undefined,
+  };
+
+  const accentStyles = {
+    "--accent-color": user.accentColor || "hsl(var(--primary))",
+  } as React.CSSProperties;
 
   return (
     <div className="min-h-screen" style={customStyles}>
@@ -338,7 +295,7 @@ export default function ProfilePage() {
                               <Input
                                 placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`}
                                 value={socialLinks[platform] || ""}
-                                onChange={(e) => handleSocialLinkChange(platform, e.target.value)}
+                                onChange={(e) => updateSocialLinks(platform, e.target.value)}
                               />
                             </div>
                           ))}
@@ -388,21 +345,6 @@ export default function ProfilePage() {
                           </select>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      <Button onClick={handleSubmit} disabled={updateProfileMutation.isPending}>
-                        {updateProfileMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          'Save Changes'
-                        )}
-                      </Button>
-                      <Button variant="outline" onClick={() => setIsEditing(false)}>
-                        Cancel
-                      </Button>
                     </div>
                   </div>
                 ) : (

@@ -27,7 +27,6 @@ import { ErrorBoundary } from "./error-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Link } from "wouter";
 
 type PostProps = {
   post: Post;
@@ -266,23 +265,21 @@ export default function PostComponent({ post: initialPost }: PostProps) {
           <CardHeader className="space-y-0 pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <Link href={`/users/${author.id}`} className="flex items-center space-x-3 hover:opacity-80">
-                  <Avatar className="h-8 w-8">
-                    {author?.avatarUrl ? (
-                      <img src={author.avatarUrl} alt={author.displayName} />
-                    ) : (
-                      <AvatarFallback>
-                        {author?.displayName?.charAt(0).toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{author?.displayName}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(post.createdAt || Date.now()), { addSuffix: true })}
-                    </span>
-                  </div>
-                </Link>
+                <Avatar className="h-8 w-8">
+                  {author?.avatarUrl ? (
+                    <img src={author.avatarUrl} alt={author.displayName} />
+                  ) : (
+                    <AvatarFallback>
+                      {author?.displayName?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">{author?.displayName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(post.createdAt || Date.now()), { addSuffix: true })}
+                  </span>
+                </div>
               </div>
               {canEdit && (
                 <div className="flex gap-2">
@@ -478,9 +475,9 @@ export default function PostComponent({ post: initialPost }: PostProps) {
                             </Avatar>
                             <div>
                               <div className="flex items-baseline gap-2">
-                                <Link href={`/users/${commentUser?.id}`} className="text-sm font-medium hover:underline">
+                                <span className="text-sm font-medium">
                                   {commentUser?.displayName || 'Unknown User'}
-                                </Link>
+                                </span>
                                 <span className="text-xs text-muted-foreground">
                                   {formatDistanceToNow(new Date(comment.createdAt || Date.now()), {
                                     addSuffix: true,
