@@ -25,7 +25,12 @@ import { useState, useEffect, useMemo } from "react";
 import { FaTwitter, FaGithub, FaLinkedin, FaInstagram } from "react-icons/fa";
 import { useToast } from "@/hooks/use-toast";
 
-// ... rest of imports and type definitions
+const SocialIconMap = {
+  twitter: FaTwitter,
+  github: FaGithub,
+  linkedin: FaLinkedin,
+  instagram: FaInstagram,
+};
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -35,7 +40,6 @@ export default function ProfilePage() {
   const isOwnProfile = currentUser?.id === userId;
   const [isEditing, setIsEditing] = useState(false);
 
-  // Initialize form state
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
@@ -49,18 +53,15 @@ export default function ProfilePage() {
     interests: ''
   });
 
-  // Initialize field-specific state
   const [locationInput, setLocationInput] = useState("");
   const [occupationInput, setOccupationInput] = useState("");
   const [interestsInput, setInterestsInput] = useState("");
 
-  // Query user data first
   const { data: user, isLoading: isLoadingUser } = useQuery<User>({
     queryKey: [`/api/users/${userId}`],
     enabled: !!userId,
   });
 
-  // Update form data when user data changes
   useEffect(() => {
     if (user) {
       setFormData({
@@ -81,7 +82,6 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  // Add friend queries back and fix stats typing
   const { data: friends = [], isLoading: isLoadingFriends } = useQuery<User[]>({
     queryKey: [`/api/users/${userId}/friends`],
     enabled: !!userId,
@@ -104,20 +104,17 @@ export default function ProfilePage() {
     enabled: !!userId,
   });
 
-  // Query posts and group posts
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/posts`],
     enabled: !!userId,
   });
 
 
-  // Ensure group posts are correctly fetched
   const { data: groupPosts = [], isLoading: isLoadingGroupPosts } = useQuery<Post[]>({
     queryKey: [`/api/users/${userId}/group-posts`],
     enabled: !!userId,
   });
 
-  // Combine all posts
   const allPosts = useMemo(() => {
     const combinedPosts = [...(posts || []), ...(groupPosts || [])];
     return combinedPosts.sort((a, b) =>
@@ -125,7 +122,6 @@ export default function ProfilePage() {
     );
   }, [posts, groupPosts]);
 
-  // Handle profile updates
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Partial<User>) => {
       const response = await apiRequest("PATCH", `/api/users/${userId}`, data);
@@ -159,7 +155,6 @@ export default function ProfilePage() {
     updateProfileMutation.mutate({ [field]: value });
   };
 
-  // Loading state
   if (isLoadingUser) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -172,10 +167,8 @@ export default function ProfilePage() {
     return <div>User not found</div>;
   }
 
-  // Parse social links from JSON string
   const socialLinks = user.socialLinks ? JSON.parse(user.socialLinks) : {};
 
-  // Social media update handler
   const updateSocialLinks = (platform: string, url: string) => {
     const newSocialLinks = { ...socialLinks, [platform]: url };
     updateProfileMutation.mutate({
@@ -183,7 +176,6 @@ export default function ProfilePage() {
     });
   };
 
-  // Apply custom styles if they exist
   const customStyles = {
     backgroundColor: user.backgroundColor || undefined,
     color: user.textColor || undefined,
@@ -193,7 +185,6 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen" style={customStyles}>
       <div className="container mx-auto p-4 space-y-6">
-        {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -238,7 +229,6 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Profile Content */}
               <div className="mt-4 space-y-4">
                 {isEditing ? (
                   <div className="space-y-4">
@@ -349,7 +339,6 @@ export default function ProfilePage() {
                     <p className="text-muted-foreground">@{user.username}</p>
                     {user.bio && <p className="text-foreground/90">{user.bio}</p>}
 
-                    {/* Location and Occupation */}
                     <div className="flex flex-wrap gap-4 mt-4 text-sm text-muted-foreground">
                       {user.location && (
                         <div className="flex items-center gap-1">
@@ -365,7 +354,6 @@ export default function ProfilePage() {
                       )}
                     </div>
 
-                    {/* Interests */}
                     {user.interests && (
                       <div className="mt-4">
                         <h3 className="text-lg font-semibold mb-2">Interests</h3>
@@ -373,7 +361,6 @@ export default function ProfilePage() {
                       </div>
                     )}
 
-                    {/* Social Links */}
                     {Object.entries(socialLinks).length > 0 && (
                       <div className="flex gap-4 mt-4">
                         {Object.entries(socialLinks).map(([platform, url]) => {
@@ -398,14 +385,11 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Stats and Content */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
-            {/* Stats Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Stats</CardTitle>
               </CardHeader>
-              {/* Update stats section */}
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
@@ -453,7 +437,6 @@ export default function ProfilePage() {
 
             </Card>
 
-            {/* Main Content Area */}
             <div className="col-span-full md:col-span-3">
               <Tabs defaultValue="tab-posts" className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
@@ -463,7 +446,6 @@ export default function ProfilePage() {
                   <TabsTrigger value="tab-groups">Groups</TabsTrigger>
                 </TabsList>
 
-                {/* Posts Tab */}
                 <TabsContent value="tab-posts" className="mt-6">
                   <div className="space-y-4">
                     {(isLoadingPosts || isLoadingGroupPosts) ? (
@@ -471,7 +453,7 @@ export default function ProfilePage() {
                         <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
                     ) : allPosts.map((post) => (
-                      <PostComponent key={`post-${post.id}`} post={post} />
+                      <PostComponent key={`post-${post.id}-${post.userId}`} post={post} />
                     ))}
                     {(!allPosts || allPosts.length === 0) && !isLoadingPosts && !isLoadingGroupPosts && (
                       <Card>
@@ -483,7 +465,6 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
-                {/* About Tab */}
                 <TabsContent value="tab-about" className="mt-6">
                   <Card>
                     <CardContent className="space-y-4 p-6">
@@ -554,7 +535,6 @@ export default function ProfilePage() {
                   </Card>
                 </TabsContent>
 
-                {/* Friends Tab */}
                 <TabsContent value="tab-friends" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {isLoadingFriends ? (
@@ -562,7 +542,7 @@ export default function ProfilePage() {
                         <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
                     ) : friends.map((friend) => (
-                      <Card key={`friend-${friend.id}`} className="overflow-hidden">
+                      <Card key={`friend-${friend.id}-${friend.username}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             <Avatar>
@@ -594,7 +574,6 @@ export default function ProfilePage() {
                   </div>
                 </TabsContent>
 
-                {/* Groups Tab */}
                 <TabsContent value="tab-groups" className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {isLoadingGroups ? (
@@ -602,7 +581,7 @@ export default function ProfilePage() {
                         <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
                     ) : userGroups.map((group) => (
-                      <Card key={`group-${group.id}`} className="overflow-hidden">
+                      <Card key={`group-${group.id}-${group.name}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             {group.iconUrl && (
