@@ -25,12 +25,7 @@ import { useState, useEffect, useMemo } from "react";
 import { FaTwitter, FaGithub, FaLinkedin, FaInstagram } from "react-icons/fa";
 import { useToast } from "@/hooks/use-toast";
 
-const SocialIconMap = {
-  twitter: FaTwitter,
-  github: FaGithub,
-  linkedin: FaLinkedin,
-  instagram: FaInstagram,
-};
+// ... rest of imports and type definitions
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -607,7 +602,7 @@ export default function ProfilePage() {
                         <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
                     ) : userGroups.map((group) => (
-                      <Card key={`profile-group-${group.id}`} className="overflow-hidden">
+                      <Card key={`group-${group.id}`} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             {group.iconUrl && (

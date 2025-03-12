@@ -631,27 +631,19 @@ export class DatabaseStorage implements IStorage {
     try {
       // Get user's groups first
       const userGroups = await this.getUserGroups(userId);
-      const groupIds = userGroups.map(group => group.id);
 
-      if (groupIds.length === 0) {
+      if (!userGroups || userGroups.length === 0) {
         return [];
       }
 
+      // Create an array of group IDs
+      const groupIds = userGroups.map(group => group.id);
+
       // Get posts from all user's groups
       const groupPosts = await db
-        .select({
-          id: posts.id,
-          content: posts.content,
-          userId: posts.userId,
-          groupId: posts.groupId,
-          imageUrl: posts.imageUrl,
-          videoUrl: posts.videoUrl,
-          postType: posts.postType,
-          createdAt: posts.createdAt,
-          likeCount: posts.likeCount
-        })
+        .select()
         .from(posts)
-        .where(sql`${posts.groupId} = ANY(${groupIds}::int[])`)
+        .where(sql`${posts.groupId} = ANY(ARRAY[${groupIds.join(',')}]::integer[])`)
         .orderBy(desc(posts.createdAt));
 
       return groupPosts;
